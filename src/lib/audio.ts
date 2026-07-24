@@ -6,6 +6,12 @@ const STRING_OCTAVE = [2, 2, 3, 3, 3, 4]
 
 const STRUM_DELAY = 0.07
 const CHORD_DURATION = 2.2
+// Small lead-in so the first scheduled note is safely in the future by the time the
+// audio thread processes it — scheduling exactly at currentTime gets silently dropped
+// on some browsers (notably Safari).
+const SCHEDULE_LEAD_IN = 0.08
+
+type AudioContextConstructor = new () => AudioContext
 
 function midiForOpenString(stringIndex: number): number {
   return (STRING_OCTAVE[stringIndex] + 1) * 12 + noteIndex(STANDARD_TUNING[stringIndex])
@@ -18,7 +24,12 @@ function midiToFrequency(midi: number): number {
 let audioContext: AudioContext | null = null
 
 function getAudioContext(): AudioContext {
-  if (!audioContext) audioContext = new AudioContext()
+  if (!audioContext) {
+    // Older Safari only exposes the constructor under the webkit-prefixed name.
+    const Ctor: AudioContextConstructor =
+      window.AudioContext ?? (window as unknown as { webkitAudioContext: AudioContextConstructor }).webkitAudioContext
+    audioContext = new Ctor()
+  }
   return audioContext
 }
 
@@ -69,7 +80,7 @@ function scheduleChord(ctx: AudioContext, chord: ChordShape, startTime: number) 
 export function playChord(chord: ChordShape) {
   const ctx = getAudioContext()
   void ensureRunning(ctx).then(() => {
-    scheduleChord(ctx, chord, ctx.currentTime)
+    scheduleChord(ctx, chord, ctx.currentTime + SCHEDULE_LEAD_IN)
   })
 }
 
@@ -78,7 +89,7 @@ export function playChordSequence(chords: ChordShape[]): number {
   if (chords.length === 0) return 0
   const ctx = getAudioContext()
   void ensureRunning(ctx).then(() => {
-    let time = ctx.currentTime
+    let time = ctx.currentTime + SCHEDULE_LEAD_IN
     chords.forEach((chord) => {
       scheduleChord(ctx, chord, time)
       time += CHORD_DURATION
