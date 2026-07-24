@@ -2,6 +2,7 @@ import { useDraggable } from '@dnd-kit/core'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { VOICING_LABEL, type ChordShape } from '../data/chords'
+import { playChord } from '../lib/audio'
 import Fretboard from './Fretboard'
 
 export function CardBody({ chord }: { chord: ChordShape }) {
@@ -32,6 +33,7 @@ export function LibraryChordCard({ chord }: { chord: ChordShape }) {
       ref={setNodeRef}
       {...listeners}
       {...attributes}
+      onClick={() => playChord(chord)}
       style={{ transform: CSS.Translate.toString(transform) }}
       className={`cursor-grab touch-none text-left active:cursor-grabbing ${isDragging ? 'opacity-40' : ''}`}
     >
@@ -69,9 +71,15 @@ export function BoardChordCard({
       >
         ×
       </button>
-      <div className="cursor-grab active:cursor-grabbing" {...listeners} {...attributes}>
+      <button
+        type="button"
+        onClick={() => playChord(chord)}
+        className="cursor-grab text-left active:cursor-grabbing"
+        {...listeners}
+        {...attributes}
+      >
         <CardBody chord={chord} />
-      </div>
+      </button>
     </div>
   )
 }

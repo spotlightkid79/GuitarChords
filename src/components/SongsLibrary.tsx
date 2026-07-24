@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { CHORDS } from '../data/chords'
+import { playChord } from '../lib/audio'
 import { downloadSong } from '../lib/songFile'
 import { useSongsStore, type SavedSong } from '../store/songsStore'
 import { CardBody } from './ChordCard'
@@ -123,7 +124,11 @@ function SongCard({
                 <div className="flex flex-wrap gap-3">
                   {line.items.map((item) => {
                     const chord = chordById.get(item.chordId)
-                    return chord ? <CardBody key={item.instanceId} chord={chord} /> : null
+                    return chord ? (
+                      <button key={item.instanceId} type="button" onClick={() => playChord(chord)} className="text-left">
+                        <CardBody chord={chord} />
+                      </button>
+                    ) : null
                   })}
                 </div>
               )}
