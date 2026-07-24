@@ -6,6 +6,7 @@ import { downloadAllSongs, downloadSong, parseSongFile } from '../lib/songFile'
 import { useProgressionStore, type BoardLine } from '../store/progressionStore'
 import { useSongsStore } from '../store/songsStore'
 import { BoardChordCard } from './ChordCard'
+import ExpandToggle from './ExpandToggle'
 
 const chordById = new Map(CHORDS.map((c) => [c.id, c]))
 
@@ -250,13 +251,7 @@ export default function ProgressionBoard() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 pt-2">
         <div className="flex items-center gap-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">Song</h2>
-          <button
-            type="button"
-            onClick={() => setCollapsed((c) => !c)}
-            className="text-xs text-zinc-500 hover:text-zinc-300"
-          >
-            {collapsed ? 'Expand' : 'Collapse'}
-          </button>
+          <ExpandToggle expanded={!collapsed} onClick={() => setCollapsed((c) => !c)} />
         </div>
         <div className="flex items-center gap-4">
           <button type="button" onClick={addLine} className="text-xs font-medium text-purple-300 hover:text-purple-200">

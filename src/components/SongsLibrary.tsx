@@ -4,6 +4,7 @@ import { downloadSong } from '../lib/songFile'
 import { useProgressionStore } from '../store/progressionStore'
 import { useSongsStore, type SavedSong } from '../store/songsStore'
 import { CardBody } from './ChordCard'
+import ExpandToggle from './ExpandToggle'
 
 const chordById = new Map(CHORDS.map((c) => [c.id, c]))
 
@@ -100,9 +101,7 @@ function SongCard({
         <button type="button" onClick={handleOpen} className="font-medium text-purple-300 hover:text-purple-200">
           {isActive ? 'Open in board ✓' : 'Open in board'}
         </button>
-        <button type="button" onClick={onToggleExpanded} className="text-zinc-500 hover:text-zinc-300">
-          {expanded ? 'Collapse' : 'Expand'}
-        </button>
+        <ExpandToggle expanded={expanded} onClick={onToggleExpanded} />
         <button
           type="button"
           onClick={() => downloadSong(song.name, song.lines)}
@@ -170,11 +169,9 @@ export default function SongsLibrary() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-zinc-100">Your songs</h2>
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={toggleAll} className="text-xs font-medium text-purple-300 hover:text-purple-200">
-            {allExpanded ? 'Collapse all' : 'Expand all'}
-          </button>
-          <span className="text-xs text-zinc-500">{songs.length} saved</span>
+        <div className="flex items-center gap-2">
+          <ExpandToggle expanded={allExpanded} onClick={toggleAll} />
+          <span className="text-xs text-zinc-500">All · {songs.length} saved</span>
         </div>
       </div>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
