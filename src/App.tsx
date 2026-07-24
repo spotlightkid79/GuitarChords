@@ -3,8 +3,25 @@ import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } f
 import NavBar, { type Tab } from './components/NavBar'
 import ChordLibrary from './components/ChordLibrary'
 import ScaleLibrary from './components/ScaleLibrary'
-import ProgressionBoard, { BOARD_DROPPABLE_ID } from './components/ProgressionBoard'
-import { useProgressionStore } from './store/progressionStore'
+import ProgressionBoard from './components/ProgressionBoard'
+import { useProgressionStore, type BoardLine } from './store/progressionStore'
+
+function locateItem(lines: BoardLine[], instanceId: string) {
+  for (const line of lines) {
+    const index = line.items.findIndex((i) => i.instanceId === instanceId)
+    if (index !== -1) return { lineId: line.id, index }
+  }
+  return null
+}
+
+function resolveDropTarget(lines: BoardLine[], overId: string) {
+  if (overId.startsWith('line:')) {
+    const lineId = overId.slice('line:'.length)
+    const line = lines.find((l) => l.id === lineId)
+    return line ? { lineId, index: line.items.length } : null
+  }
+  return locateItem(lines, overId)
+}
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('chords')
@@ -15,24 +32,27 @@ export default function App() {
     if (!over) return
     const activeId = String(active.id)
     const overId = String(over.id)
-    const { items, addChord, reorder } = useProgressionStore.getState()
+    const { lines, addChord, reorderInLine, moveItemToLine } = useProgressionStore.getState()
+
+    const target = resolveDropTarget(lines, overId)
+    if (!target) return
 
     if (activeId.startsWith('lib:')) {
       const chordId = active.data.current?.chordId as string | undefined
       if (!chordId) return
-      if (overId === BOARD_DROPPABLE_ID) {
-        addChord(chordId)
-      } else {
-        const idx = items.findIndex((i) => i.instanceId === overId)
-        addChord(chordId, idx === -1 ? undefined : idx)
-      }
+      addChord(target.lineId, chordId, target.index)
       return
     }
 
-    const fromIndex = items.findIndex((i) => i.instanceId === activeId)
-    const toIndex = items.findIndex((i) => i.instanceId === overId)
-    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return
-    reorder(fromIndex, toIndex)
+    const source = locateItem(lines, activeId)
+    if (!source) return
+
+    if (source.lineId === target.lineId) {
+      if (source.index === target.index) return
+      reorderInLine(source.lineId, source.index, target.index)
+    } else {
+      moveItemToLine(source.lineId, target.lineId, activeId, target.index)
+    }
   }
 
   return (
