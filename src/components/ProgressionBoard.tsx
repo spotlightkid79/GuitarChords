@@ -1,7 +1,8 @@
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { CHORDS } from '../data/chords'
+import { downloadAllSongs, downloadSong, parseSongFile } from '../lib/songFile'
 import { useProgressionStore, type BoardLine } from '../store/progressionStore'
 import { useSongsStore } from '../store/songsStore'
 import { BoardChordCard } from './ChordCard'
@@ -110,6 +111,7 @@ function SongControls() {
     useSongsStore()
   const activeSong = songs.find((s) => s.id === activeSongId) ?? null
   const [name, setName] = useState(activeSong?.name ?? 'Untitled Song')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   function handleSave() {
     const trimmed = name.trim() || 'Untitled Song'
@@ -141,6 +143,35 @@ function SongControls() {
     deleteSong(activeSong.id)
     clearAll()
     setName('Untitled Song')
+  }
+
+  function handleExportCurrent() {
+    downloadSong(name.trim() || 'Untitled Song', lines)
+  }
+
+  function handleExportAll() {
+    if (songs.length === 0) return
+    downloadAllSongs(songs)
+  }
+
+  function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    file
+      .text()
+      .then((raw) => {
+        const imported = parseSongFile(raw)
+        imported.forEach((s) => saveAsNew(s.name, s.lines))
+        window.alert(
+          imported.length === 1
+            ? `Imported "${imported[0].name}".`
+            : `Imported ${imported.length} songs.`,
+        )
+      })
+      .catch((err) => {
+        window.alert(err instanceof Error ? err.message : 'Could not import that file.')
+      })
   }
 
   return (
@@ -186,6 +217,25 @@ function SongControls() {
           )}
         </>
       )}
+
+      <span className="mx-1 h-4 w-px bg-white/10" aria-hidden="true" />
+
+      <button type="button" onClick={handleExportCurrent} className="text-xs text-zinc-500 hover:text-zinc-300">
+        Export current
+      </button>
+      {songs.length > 0 && (
+        <button type="button" onClick={handleExportAll} className="text-xs text-zinc-500 hover:text-zinc-300">
+          Export all
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        className="text-xs text-zinc-500 hover:text-zinc-300"
+      >
+        Import…
+      </button>
+      <input ref={fileInputRef} type="file" accept="application/json" onChange={handleImportFile} className="hidden" />
     </div>
   )
 }
