@@ -3,6 +3,7 @@ import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } f
 import NavBar, { type Tab } from './components/NavBar'
 import ChordLibrary from './components/ChordLibrary'
 import ScaleLibrary from './components/ScaleLibrary'
+import NotesExplorer from './components/NotesExplorer'
 import ProgressionBoard from './components/ProgressionBoard'
 import { useProgressionStore, type BoardLine } from './store/progressionStore'
 
@@ -60,7 +61,9 @@ export default function App() {
       <div className="flex h-full flex-col">
         <NavBar active={tab} onChange={setTab} />
         <main className="flex-1 overflow-y-auto p-4">
-          {tab === 'chords' ? <ChordLibrary /> : <ScaleLibrary />}
+          {tab === 'chords' && <ChordLibrary />}
+          {tab === 'scales' && <ScaleLibrary />}
+          {tab === 'notes' && <NotesExplorer />}
         </main>
         <ProgressionBoard />
       </div>

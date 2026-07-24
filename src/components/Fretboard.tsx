@@ -14,7 +14,13 @@ interface ScaleFretboardProps {
   fretCount?: number
 }
 
-type FretboardProps = ChordFretboardProps | ScaleFretboardProps
+interface NotesFretboardProps {
+  mode: 'notes'
+  highlightNote?: NoteName | null
+  fretCount?: number
+}
+
+type FretboardProps = ChordFretboardProps | ScaleFretboardProps | NotesFretboardProps
 
 const STRING_COUNT = 6
 const ROWS = 4
@@ -131,8 +137,17 @@ function ChordDiagram({ chord }: { chord: ChordShape }) {
   )
 }
 
-function ScaleNeck({ rootNote, scaleType, fretCount = 12 }: Omit<ScaleFretboardProps, 'mode'>) {
-  const scaleNotes = new Set(scaleType.intervals.map((i) => noteAtFret(rootNote, i)))
+function NeckDiagram({
+  fretCount = 12,
+  isVisible,
+  isEmphasis,
+  ariaLabel,
+}: {
+  fretCount?: number
+  isVisible: (note: NoteName) => boolean
+  isEmphasis: (note: NoteName) => boolean
+  ariaLabel: string
+}) {
   const width = Math.max(640, fretCount * 52)
   const height = 190
   const padLeft = 28
@@ -149,7 +164,7 @@ function ScaleNeck({ rootNote, scaleType, fretCount = 12 }: Omit<ScaleFretboardP
   const rowToStringIndex = (row: number) => STRING_COUNT - 1 - row
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} role="img" aria-label={`${rootNote} ${scaleType.name}`}>
+    <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} role="img" aria-label={ariaLabel}>
       {/* fretboard background */}
       <rect x={padLeft} y={padTop} width={gridW} height={gridH} fill="#1a1b22" rx="4" />
 
@@ -202,14 +217,14 @@ function ScaleNeck({ rootNote, scaleType, fretCount = 12 }: Omit<ScaleFretboardP
         Array.from({ length: fretCount + 1 }).map((_, fret) => {
           const stringIdx = rowToStringIndex(row)
           const note = noteAtFret(STANDARD_TUNING[stringIdx], fret)
-          if (!scaleNotes.has(note)) return null
-          const isRoot = note === rootNote
+          if (!isVisible(note)) return null
+          const emphasis = isEmphasis(note)
           const x = fret === 0 ? padLeft + 8 : padLeft + fretGap * (fret - 0.5)
           const y = padTop + row * stringGap
           return (
             <g key={`${row}-${fret}`}>
-              <circle cx={x} cy={y} r="9.5" fill={isRoot ? '#c084fc' : '#2e303a'} stroke={isRoot ? '#c084fc' : '#6b6b78'} strokeWidth="1.5" />
-              <text x={x} y={y + 3.5} textAnchor="middle" fontSize="9" fontWeight={isRoot ? 700 : 400} fill={isRoot ? '#0f1115' : '#e8e8ec'}>
+              <circle cx={x} cy={y} r="9.5" fill={emphasis ? '#c084fc' : '#2e303a'} stroke={emphasis ? '#c084fc' : '#6b6b78'} strokeWidth="1.5" />
+              <text x={x} y={y + 3.5} textAnchor="middle" fontSize="9" fontWeight={emphasis ? 700 : 400} fill={emphasis ? '#0f1115' : '#e8e8ec'}>
                 {note}
               </text>
             </g>
@@ -220,7 +235,31 @@ function ScaleNeck({ rootNote, scaleType, fretCount = 12 }: Omit<ScaleFretboardP
   )
 }
 
+function ScaleNeck({ rootNote, scaleType, fretCount = 12 }: Omit<ScaleFretboardProps, 'mode'>) {
+  const scaleNotes = new Set(scaleType.intervals.map((i) => noteAtFret(rootNote, i)))
+  return (
+    <NeckDiagram
+      fretCount={fretCount}
+      isVisible={(note) => scaleNotes.has(note)}
+      isEmphasis={(note) => note === rootNote}
+      ariaLabel={`${rootNote} ${scaleType.name}`}
+    />
+  )
+}
+
+function NotesNeck({ highlightNote = null, fretCount = 12 }: Omit<NotesFretboardProps, 'mode'>) {
+  return (
+    <NeckDiagram
+      fretCount={fretCount}
+      isVisible={() => true}
+      isEmphasis={(note) => highlightNote !== null && note === highlightNote}
+      ariaLabel={highlightNote ? `Fretboard notes, highlighting ${highlightNote}` : 'Fretboard notes'}
+    />
+  )
+}
+
 export default function Fretboard(props: FretboardProps) {
   if (props.mode === 'chord') return <ChordDiagram chord={props.chord} />
-  return <ScaleNeck {...props} />
+  if (props.mode === 'scale') return <ScaleNeck {...props} />
+  return <NotesNeck {...props} />
 }

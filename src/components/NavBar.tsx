@@ -1,8 +1,9 @@
-export type Tab = 'chords' | 'scales'
+export type Tab = 'chords' | 'scales' | 'notes'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'chords', label: 'Chords' },
   { id: 'scales', label: 'Scales' },
+  { id: 'notes', label: 'Notes' },
 ]
 
 export default function NavBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
