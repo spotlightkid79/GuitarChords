@@ -145,7 +145,7 @@ export default function SongsLibrary() {
   if (songs.length === 0) {
     return (
       <div className="flex h-full items-center justify-center py-16 text-center text-sm text-zinc-500">
-        No songs saved yet. Compose one in the Song board below, then hit "Save as new song".
+        No songs saved yet. Head to the Chords tab, build a progression in the Song board, then hit "Save as new song".
       </div>
     )
   }

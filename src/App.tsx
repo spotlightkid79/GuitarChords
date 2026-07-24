@@ -67,7 +67,7 @@ export default function App() {
           {tab === 'notes' && <NotesExplorer />}
           {tab === 'songs' && <SongsLibrary />}
         </main>
-        <ProgressionBoard />
+        {tab !== 'songs' && <ProgressionBoard />}
       </div>
     </DndContext>
   )
