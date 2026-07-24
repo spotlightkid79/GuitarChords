@@ -38,11 +38,11 @@ function SongCard({
 
   return (
     <div
-      className={`relative flex flex-col gap-2 rounded-lg border p-3 pr-20 ${expanded ? 'col-span-full' : ''} ${
+      className={`relative flex flex-col gap-2 rounded-lg border p-3 pl-20 ${expanded ? 'col-span-full' : ''} ${
         isActive ? 'border-purple-400/50 bg-purple-500/5' : 'border-white/10 bg-white/5'
       }`}
     >
-      <div className="absolute right-2 top-2 flex items-center gap-1">
+      <div className="absolute left-2 top-2 flex items-center gap-1">
         <button
           type="button"
           onClick={() => downloadSong(song.name, song.lines)}
