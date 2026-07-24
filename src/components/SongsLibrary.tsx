@@ -38,11 +38,31 @@ function SongCard({
 
   return (
     <div
-      className={`relative flex flex-col gap-2 rounded-lg border p-3 pr-8 ${expanded ? 'col-span-full' : ''} ${
+      className={`relative flex flex-col gap-2 rounded-lg border p-3 pr-20 ${expanded ? 'col-span-full' : ''} ${
         isActive ? 'border-purple-400/50 bg-purple-500/5' : 'border-white/10 bg-white/5'
       }`}
     >
-      <ExpandToggle expanded={expanded} onClick={onToggleExpanded} className="absolute right-2 top-2" />
+      <div className="absolute right-2 top-2 flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => downloadSong(song.name, song.lines)}
+          aria-label="Export"
+          title="Export"
+          className="flex h-4 w-4 items-center justify-center rounded-sm border border-zinc-500 text-[10px] leading-none text-zinc-400 hover:border-zinc-300 hover:text-zinc-200"
+        >
+          ↓
+        </button>
+        <ExpandToggle expanded={expanded} onClick={onToggleExpanded} />
+        <button
+          type="button"
+          onClick={handleDelete}
+          aria-label="Delete"
+          title="Delete"
+          className="flex h-4 w-4 items-center justify-center rounded-sm border border-zinc-500 text-[10px] leading-none text-zinc-400 hover:border-red-400 hover:text-red-400"
+        >
+          ×
+        </button>
+      </div>
 
       {editing ? (
         <input
@@ -91,19 +111,6 @@ function SongCard({
           {preview.length > 8 && <span className="text-[10px] text-zinc-600">+{preview.length - 8} more</span>}
         </div>
       )}
-
-      <div className="flex items-center gap-3 text-xs">
-        <button
-          type="button"
-          onClick={() => downloadSong(song.name, song.lines)}
-          className="text-zinc-500 hover:text-zinc-300"
-        >
-          Export
-        </button>
-        <button type="button" onClick={handleDelete} className="text-zinc-500 hover:text-red-400">
-          Delete
-        </button>
-      </div>
 
       {expanded && (
         <div className="mt-1 flex flex-col gap-4 border-t border-white/10 pt-3">
