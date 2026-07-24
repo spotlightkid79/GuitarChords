@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { CHORDS } from '../data/chords'
-import { playChord } from '../lib/audio'
+import { CHORDS, type ChordShape } from '../data/chords'
+import { playChord, playChordSequence } from '../lib/audio'
 import { downloadSong } from '../lib/songFile'
 import { useSongsStore, type SavedSong } from '../store/songsStore'
 import { CardBody } from './ChordCard'
@@ -37,13 +37,28 @@ function SongCard({
     deleteSong(song.id)
   }
 
+  function handlePlay() {
+    const chords = preview.map((i) => chordById.get(i.chordId)).filter((c): c is ChordShape => !!c)
+    playChordSequence(chords)
+  }
+
   return (
     <div
-      className={`relative flex flex-col gap-2 rounded-lg border p-3 pl-20 ${expanded ? 'col-span-full' : ''} ${
+      className={`relative flex flex-col gap-2 rounded-lg border p-3 pl-24 ${expanded ? 'col-span-full' : ''} ${
         isActive ? 'border-purple-400/50 bg-purple-500/5' : 'border-white/10 bg-white/5'
       }`}
     >
       <div className="absolute left-2 top-2 flex items-center gap-1">
+        <button
+          type="button"
+          disabled={chordCount === 0}
+          onClick={handlePlay}
+          aria-label="Play song"
+          title="Play song"
+          className="flex h-4 w-4 items-center justify-center rounded-sm border border-zinc-500 text-[9px] leading-none text-zinc-400 hover:border-zinc-300 hover:text-zinc-200 disabled:opacity-30"
+        >
+          ▶
+        </button>
         <button
           type="button"
           onClick={() => downloadSong(song.name, song.lines)}

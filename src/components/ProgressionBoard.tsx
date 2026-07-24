@@ -1,7 +1,8 @@
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable'
 import { useRef, useState } from 'react'
-import { CHORDS } from '../data/chords'
+import { CHORDS, type ChordShape } from '../data/chords'
+import { playChordSequence } from '../lib/audio'
 import { downloadAllSongs, downloadSong, parseSongFile } from '../lib/songFile'
 import { useProgressionStore, type BoardLine } from '../store/progressionStore'
 import { useSongsStore } from '../store/songsStore'
@@ -19,6 +20,11 @@ function ProgressionLineRow({ line, index, total }: { line: BoardLine; index: nu
   const { setNodeRef, isOver } = useDroppable({ id: lineDroppableId(line.id) })
   const [editing, setEditing] = useState(false)
   const [draftName, setDraftName] = useState(line.name)
+
+  function handlePlay() {
+    const chords = line.items.map((i) => chordById.get(i.chordId)).filter((c): c is ChordShape => !!c)
+    playChordSequence(chords)
+  }
 
   return (
     <div className="flex items-start gap-3">
@@ -52,6 +58,16 @@ function ProgressionLineRow({ line, index, total }: { line: BoardLine; index: nu
           </button>
         )}
         <div className="flex gap-1.5 text-[10px] text-zinc-500">
+          <button
+            type="button"
+            disabled={line.items.length === 0}
+            onClick={handlePlay}
+            className="hover:text-purple-300 disabled:opacity-30"
+            aria-label="Play line"
+            title="Play line"
+          >
+            ▶
+          </button>
           <button
             type="button"
             disabled={index === 0}
@@ -246,6 +262,11 @@ export default function ProgressionBoard() {
   const activeSongId = useSongsStore((s) => s.activeSongId)
   const [collapsed, setCollapsed] = useState(false)
 
+  const allChords = lines
+    .flatMap((l) => l.items)
+    .map((i) => chordById.get(i.chordId))
+    .filter((c): c is ChordShape => !!c)
+
   return (
     <div className="border-t border-white/10 bg-[#14151b]">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 pt-2">
@@ -254,6 +275,14 @@ export default function ProgressionBoard() {
           <ExpandToggle expanded={!collapsed} onClick={() => setCollapsed((c) => !c)} />
         </div>
         <div className="flex items-center gap-4">
+          <button
+            type="button"
+            disabled={allChords.length === 0}
+            onClick={() => playChordSequence(allChords)}
+            className="text-xs font-medium text-purple-300 hover:text-purple-200 disabled:opacity-30"
+          >
+            ▶ Play song
+          </button>
           <button type="button" onClick={addLine} className="text-xs font-medium text-purple-300 hover:text-purple-200">
             + Add line
           </button>
