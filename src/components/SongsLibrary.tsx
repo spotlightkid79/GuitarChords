@@ -3,6 +3,7 @@ import { CHORDS } from '../data/chords'
 import { downloadSong } from '../lib/songFile'
 import { useProgressionStore } from '../store/progressionStore'
 import { useSongsStore, type SavedSong } from '../store/songsStore'
+import { CardBody } from './ChordCard'
 
 const chordById = new Map(CHORDS.map((c) => [c.id, c]))
 
@@ -14,7 +15,15 @@ function formatDate(ts: number) {
   return new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-function SongCard({ song }: { song: SavedSong }) {
+function SongCard({
+  song,
+  expanded,
+  onToggleExpanded,
+}: {
+  song: SavedSong
+  expanded: boolean
+  onToggleExpanded: () => void
+}) {
   const setLines = useProgressionStore((s) => s.setLines)
   const { activeSongId, setActive, deleteSong, renameSong } = useSongsStore()
   const [editing, setEditing] = useState(false)
@@ -35,7 +44,7 @@ function SongCard({ song }: { song: SavedSong }) {
 
   return (
     <div
-      className={`flex flex-col gap-2 rounded-lg border p-3 ${
+      className={`flex flex-col gap-2 rounded-lg border p-3 ${expanded ? 'col-span-full' : ''} ${
         isActive ? 'border-purple-400/50 bg-purple-500/5' : 'border-white/10 bg-white/5'
       }`}
     >
@@ -73,7 +82,7 @@ function SongCard({ song }: { song: SavedSong }) {
       </div>
       <div className="text-[11px] text-zinc-600">Updated {formatDate(song.updatedAt)}</div>
 
-      {preview.length > 0 && (
+      {!expanded && preview.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {preview.slice(0, 8).map((item) => {
             const chord = chordById.get(item.chordId)
@@ -87,9 +96,12 @@ function SongCard({ song }: { song: SavedSong }) {
         </div>
       )}
 
-      <div className="mt-1 flex items-center gap-3 text-xs">
+      <div className="flex items-center gap-3 text-xs">
         <button type="button" onClick={handleOpen} className="font-medium text-purple-300 hover:text-purple-200">
           {isActive ? 'Open in board ✓' : 'Open in board'}
+        </button>
+        <button type="button" onClick={onToggleExpanded} className="text-zinc-500 hover:text-zinc-300">
+          {expanded ? 'Collapse' : 'Expand'}
         </button>
         <button
           type="button"
@@ -102,12 +114,33 @@ function SongCard({ song }: { song: SavedSong }) {
           Delete
         </button>
       </div>
+
+      {expanded && (
+        <div className="mt-1 flex flex-col gap-4 border-t border-white/10 pt-3">
+          {song.lines.map((line) => (
+            <div key={line.id} className="flex flex-col gap-2">
+              <div className="text-xs font-semibold text-zinc-400">{line.name}</div>
+              {line.items.length === 0 ? (
+                <p className="text-xs text-zinc-600">No chords in this line</p>
+              ) : (
+                <div className="flex flex-wrap gap-3">
+                  {line.items.map((item) => {
+                    const chord = chordById.get(item.chordId)
+                    return chord ? <CardBody key={item.instanceId} chord={chord} /> : null
+                  })}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
 export default function SongsLibrary() {
   const songs = useSongsStore((s) => s.songs)
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
   if (songs.length === 0) {
     return (
@@ -118,18 +151,40 @@ export default function SongsLibrary() {
   }
 
   const sorted = [...songs].sort((a, b) => b.updatedAt - a.updatedAt)
+  const allExpanded = sorted.every((s) => expandedIds.has(s.id))
+
+  function toggleOne(id: string) {
+    setExpandedIds((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleAll() {
+    setExpandedIds(allExpanded ? new Set() : new Set(sorted.map((s) => s.id)))
+  }
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-zinc-100">Your songs</h2>
-        <span className="text-xs text-zinc-500">
-          {songs.length} saved
-        </span>
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={toggleAll} className="text-xs font-medium text-purple-300 hover:text-purple-200">
+            {allExpanded ? 'Collapse all' : 'Expand all'}
+          </button>
+          <span className="text-xs text-zinc-500">{songs.length} saved</span>
+        </div>
       </div>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
         {sorted.map((song) => (
-          <SongCard key={song.id} song={song} />
+          <SongCard
+            key={song.id}
+            song={song}
+            expanded={expandedIds.has(song.id)}
+            onToggleExpanded={() => toggleOne(song.id)}
+          />
         ))}
       </div>
     </div>

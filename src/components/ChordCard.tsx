@@ -4,7 +4,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { VOICING_LABEL, type ChordShape } from '../data/chords'
 import Fretboard from './Fretboard'
 
-function CardBody({ chord }: { chord: ChordShape }) {
+export function CardBody({ chord }: { chord: ChordShape }) {
   return (
     <div className="flex w-32 flex-col items-center gap-1 rounded-lg border border-white/10 bg-white/5 p-2">
       <div className="h-32 w-full">
