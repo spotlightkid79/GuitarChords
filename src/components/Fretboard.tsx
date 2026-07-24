@@ -113,7 +113,17 @@ function ChordDiagram({ chord }: { chord: ChordShape }) {
 
       {/* base fret label */}
       {chord.baseFret > 1 && (
-        <text x={width - 4} y={padTop + rowGap * 0.75} textAnchor="end" fontSize="10" fill="#d4bbfb">
+        <text
+          x={width - 4}
+          y={padTop + rowGap * 0.75}
+          textAnchor="end"
+          fontSize="10"
+          fontWeight="700"
+          fill="#f5f0ff"
+          stroke="#0f1115"
+          strokeWidth="3"
+          paintOrder="stroke"
+        >
           {chord.baseFret}fr
         </text>
       )}

@@ -1,7 +1,7 @@
 import { useDraggable } from '@dnd-kit/core'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import type { ChordShape } from '../data/chords'
+import { VOICING_LABEL, type ChordShape } from '../data/chords'
 import Fretboard from './Fretboard'
 
 function CardBody({ chord }: { chord: ChordShape }) {
@@ -12,6 +12,9 @@ function CardBody({ chord }: { chord: ChordShape }) {
       </div>
       <div className="text-sm font-semibold text-zinc-100">{chord.label}</div>
       <div className="text-[11px] text-zinc-400">{chord.qualityName}</div>
+      {chord.voicing !== 'open' && (
+        <div className="text-[10px] text-purple-300/70">{VOICING_LABEL[chord.voicing]}</div>
+      )}
     </div>
   )
 }

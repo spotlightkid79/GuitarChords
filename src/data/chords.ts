@@ -1,11 +1,13 @@
 import { type NoteName, NOTE_NAMES, noteIndex } from '../lib/music-theory'
 
 export type ChordQuality = 'maj' | 'min' | '7' | 'maj7' | 'min7'
+export type ChordVoicing = 'open' | 'barre-e' | 'barre-a'
 
 export interface ChordShape {
   id: string
   root: NoteName
   quality: ChordQuality
+  voicing: ChordVoicing
   label: string
   qualityName: string
   /** Fret per string, index 0 = low E (6th string) .. index 5 = high E (1st string). */
@@ -13,6 +15,12 @@ export interface ChordShape {
   /** Fret number the diagram window starts at. 1 means "at the nut". */
   baseFret: number
   barre?: { fret: number; fromString: number; toString: number }
+}
+
+export const VOICING_LABEL: Record<ChordVoicing, string> = {
+  open: 'Open',
+  'barre-e': 'Barre · E-shape',
+  'barre-a': 'Barre · A-shape',
 }
 
 export const QUALITY_LABEL: Record<ChordQuality, string> = {
@@ -42,6 +50,7 @@ function shape(
     id: `${root}-${quality}-open`,
     root,
     quality,
+    voicing: 'open',
     label: `${root}${QUALITY_LABEL[quality]}`,
     qualityName: QUALITY_NAME[quality],
     frets,
@@ -102,33 +111,64 @@ function fretsToRoot(fromNote: NoteName, root: NoteName): number {
   return (noteIndex(root) - noteIndex(fromNote) + 12) % 12
 }
 
-function generateBarreChord(root: NoteName, quality: ChordQuality): ChordShape {
-  const rE = fretsToRoot('E', root)
-  const rA = fretsToRoot('A', root)
-  const useE = rE <= rA
-  const r = useE ? rE : rA
-  const frets = (useE ? E_SHAPE : A_SHAPE)[quality](r)
+/** Barre voicing for `root`/`quality` using the given movable shape, or null if it would sit at fret 0 (i.e. it's just the open chord). */
+function generateBarreVoicing(
+  root: NoteName,
+  quality: ChordQuality,
+  shapeType: 'barre-e' | 'barre-a',
+): ChordShape | null {
+  const fromNote = shapeType === 'barre-e' ? 'E' : 'A'
+  const r = fretsToRoot(fromNote, root)
+  if (r === 0) return null
+  const template = (shapeType === 'barre-e' ? E_SHAPE : A_SHAPE)[quality]
+  const frets = template(r)
   return {
-    id: `${root}-${quality}-barre`,
+    id: `${root}-${quality}-${shapeType}`,
     root,
     quality,
+    voicing: shapeType,
     label: `${root}${QUALITY_LABEL[quality]}`,
     qualityName: QUALITY_NAME[quality],
     frets,
     baseFret: r,
-    barre: { fret: r, fromString: useE ? 0 : 1, toString: 5 },
+    barre: { fret: r, fromString: shapeType === 'barre-e' ? 0 : 1, toString: 5 },
   }
 }
 
 const openKey = (root: string, quality: ChordQuality) => `${root}-${quality}`
 const openLookup = new Set(OPEN_CHORDS.map((c) => openKey(c.root, c.quality)))
 
-const GENERATED_CHORDS: ChordShape[] = []
+// Every root's major and minor chord gets both movable barre voicings, in
+// addition to any curated open shape above.
+const BARRE_CHORDS: ChordShape[] = []
 for (const root of NOTE_NAMES) {
-  for (const quality of CHORD_QUALITIES) {
-    if (openLookup.has(openKey(root, quality))) continue
-    GENERATED_CHORDS.push(generateBarreChord(root, quality))
+  for (const quality of ['maj', 'min'] as ChordQuality[]) {
+    for (const shapeType of ['barre-e', 'barre-a'] as const) {
+      const voicing = generateBarreVoicing(root, quality, shapeType)
+      if (voicing) BARRE_CHORDS.push(voicing)
+    }
   }
 }
 
-export const CHORDS: ChordShape[] = [...OPEN_CHORDS, ...GENERATED_CHORDS]
+// 7th / maj7 / min7 barre voicings only fill in roots without a curated open shape.
+const GENERATED_SEVENTHS: ChordShape[] = []
+for (const root of NOTE_NAMES) {
+  for (const quality of ['7', 'maj7', 'min7'] as ChordQuality[]) {
+    if (openLookup.has(openKey(root, quality))) continue
+    const rE = fretsToRoot('E', root)
+    const rA = fretsToRoot('A', root)
+    const shapeType = rE <= rA ? 'barre-e' : 'barre-a'
+    const voicing = generateBarreVoicing(root, quality, shapeType)
+    if (voicing) GENERATED_SEVENTHS.push(voicing)
+  }
+}
+
+const VOICING_ORDER: Record<ChordVoicing, number> = { open: 0, 'barre-e': 1, 'barre-a': 2 }
+
+export const CHORDS: ChordShape[] = [...OPEN_CHORDS, ...BARRE_CHORDS, ...GENERATED_SEVENTHS].sort((a, b) => {
+  const rootDiff = NOTE_NAMES.indexOf(a.root) - NOTE_NAMES.indexOf(b.root)
+  if (rootDiff !== 0) return rootDiff
+  const qualityDiff = CHORD_QUALITIES.indexOf(a.quality) - CHORD_QUALITIES.indexOf(b.quality)
+  if (qualityDiff !== 0) return qualityDiff
+  return VOICING_ORDER[a.voicing] - VOICING_ORDER[b.voicing]
+})
