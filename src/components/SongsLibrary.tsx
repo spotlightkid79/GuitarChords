@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { CHORDS } from '../data/chords'
 import { downloadSong } from '../lib/songFile'
-import { useProgressionStore } from '../store/progressionStore'
 import { useSongsStore, type SavedSong } from '../store/songsStore'
 import { CardBody } from './ChordCard'
 import ExpandToggle from './ExpandToggle'
@@ -25,18 +24,12 @@ function SongCard({
   expanded: boolean
   onToggleExpanded: () => void
 }) {
-  const setLines = useProgressionStore((s) => s.setLines)
-  const { activeSongId, setActive, deleteSong, renameSong } = useSongsStore()
+  const { activeSongId, deleteSong, renameSong } = useSongsStore()
   const [editing, setEditing] = useState(false)
   const [draftName, setDraftName] = useState(song.name)
   const isActive = activeSongId === song.id
   const chordCount = countChords(song)
   const preview = song.lines.flatMap((l) => l.items)
-
-  function handleOpen() {
-    setLines(song.lines)
-    setActive(song.id)
-  }
 
   function handleDelete() {
     if (!window.confirm(`Delete "${song.name}"? This can't be undone.`)) return
@@ -45,10 +38,12 @@ function SongCard({
 
   return (
     <div
-      className={`flex flex-col gap-2 rounded-lg border p-3 ${expanded ? 'col-span-full' : ''} ${
+      className={`relative flex flex-col gap-2 rounded-lg border p-3 pr-8 ${expanded ? 'col-span-full' : ''} ${
         isActive ? 'border-purple-400/50 bg-purple-500/5' : 'border-white/10 bg-white/5'
       }`}
     >
+      <ExpandToggle expanded={expanded} onClick={onToggleExpanded} className="absolute right-2 top-2" />
+
       {editing ? (
         <input
           autoFocus
@@ -98,10 +93,6 @@ function SongCard({
       )}
 
       <div className="flex items-center gap-3 text-xs">
-        <button type="button" onClick={handleOpen} className="font-medium text-purple-300 hover:text-purple-200">
-          {isActive ? 'Open in board ✓' : 'Open in board'}
-        </button>
-        <ExpandToggle expanded={expanded} onClick={onToggleExpanded} />
         <button
           type="button"
           onClick={() => downloadSong(song.name, song.lines)}
