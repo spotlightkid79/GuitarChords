@@ -19,8 +19,25 @@ let audioContext: AudioContext | null = null
 
 function getAudioContext(): AudioContext {
   if (!audioContext) audioContext = new AudioContext()
-  if (audioContext.state === 'suspended') void audioContext.resume()
   return audioContext
+}
+
+// Wrapped in a function so TS doesn't (incorrectly) narrow this live, browser-mutated getter across the await below.
+function contextState(ctx: AudioContext): AudioContextState {
+  return ctx.state
+}
+
+async function ensureRunning(ctx: AudioContext) {
+  if (contextState(ctx) === 'running') return
+  try {
+    await ctx.resume()
+  } catch (err) {
+    console.warn('Could not start audio playback:', err)
+    return
+  }
+  if (contextState(ctx) !== 'running') {
+    console.warn(`Audio context is "${contextState(ctx)}" — the browser may be blocking sound on this page.`)
+  }
 }
 
 function scheduleChord(ctx: AudioContext, chord: ChordShape, startTime: number) {
@@ -51,17 +68,21 @@ function scheduleChord(ctx: AudioContext, chord: ChordShape, startTime: number) 
 /** Plays a single chord as a slow strum, low string to high string. */
 export function playChord(chord: ChordShape) {
   const ctx = getAudioContext()
-  scheduleChord(ctx, chord, ctx.currentTime)
+  void ensureRunning(ctx).then(() => {
+    scheduleChord(ctx, chord, ctx.currentTime)
+  })
 }
 
 /** Plays a list of chords back to back. Returns the total playback duration in seconds. */
 export function playChordSequence(chords: ChordShape[]): number {
   if (chords.length === 0) return 0
   const ctx = getAudioContext()
-  let time = ctx.currentTime
-  chords.forEach((chord) => {
-    scheduleChord(ctx, chord, time)
-    time += CHORD_DURATION
+  void ensureRunning(ctx).then(() => {
+    let time = ctx.currentTime
+    chords.forEach((chord) => {
+      scheduleChord(ctx, chord, time)
+      time += CHORD_DURATION
+    })
   })
   return chords.length * CHORD_DURATION
 }
