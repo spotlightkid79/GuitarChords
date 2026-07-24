@@ -3,6 +3,7 @@ import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortabl
 import { useState } from 'react'
 import { CHORDS } from '../data/chords'
 import { useProgressionStore, type BoardLine } from '../store/progressionStore'
+import { useSongsStore } from '../store/songsStore'
 import { BoardChordCard } from './ChordCard'
 
 const chordById = new Map(CHORDS.map((c) => [c.id, c]))
@@ -103,8 +104,95 @@ function ProgressionLineRow({ line, index, total }: { line: BoardLine; index: nu
   )
 }
 
+function SongControls() {
+  const { lines, setLines, clearAll } = useProgressionStore()
+  const { songs, activeSongId, saveAsNew, updateExisting, renameSong, deleteSong, setActive } =
+    useSongsStore()
+  const activeSong = songs.find((s) => s.id === activeSongId) ?? null
+  const [name, setName] = useState(activeSong?.name ?? 'Untitled Song')
+
+  function handleSave() {
+    const trimmed = name.trim() || 'Untitled Song'
+    if (activeSong) {
+      updateExisting(activeSong.id, lines)
+      if (trimmed !== activeSong.name) renameSong(activeSong.id, trimmed)
+    } else {
+      saveAsNew(trimmed, lines)
+    }
+  }
+
+  function handleNew() {
+    clearAll()
+    setActive(null)
+    setName('Untitled Song')
+  }
+
+  function handleLoad(id: string) {
+    const song = songs.find((s) => s.id === id)
+    if (!song) return
+    setLines(song.lines)
+    setActive(song.id)
+    setName(song.name)
+  }
+
+  function handleDelete() {
+    if (!activeSong) return
+    if (!window.confirm(`Delete "${activeSong.name}"? This can't be undone.`)) return
+    deleteSong(activeSong.id)
+    clearAll()
+    setName('Untitled Song')
+  }
+
+  return (
+    <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 pb-2">
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onFocus={(e) => e.currentTarget.select()}
+        placeholder="Song name"
+        className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-purple-400"
+      />
+      <button
+        type="button"
+        onClick={handleSave}
+        className="rounded-md bg-purple-500/20 px-2 py-1 text-xs font-medium text-purple-300 hover:bg-purple-500/30"
+      >
+        {activeSong ? 'Save' : 'Save as new song'}
+      </button>
+      <button type="button" onClick={handleNew} className="text-xs text-zinc-500 hover:text-zinc-300">
+        New song
+      </button>
+
+      {songs.length > 0 && (
+        <>
+          <select
+            value={activeSongId ?? ''}
+            onChange={(e) => handleLoad(e.target.value)}
+            className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-zinc-100"
+          >
+            <option value="" disabled>
+              Load a saved song…
+            </option>
+            {songs.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+          {activeSong && (
+            <button type="button" onClick={handleDelete} className="text-xs text-zinc-500 hover:text-red-400">
+              Delete
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function ProgressionBoard() {
   const { lines, addLine, clearAll } = useProgressionStore()
+  const activeSongId = useSongsStore((s) => s.activeSongId)
   const [collapsed, setCollapsed] = useState(false)
 
   return (
@@ -129,6 +217,8 @@ export default function ProgressionBoard() {
           </button>
         </div>
       </div>
+
+      <SongControls key={activeSongId ?? 'new'} />
 
       {!collapsed && (
         <div className="mx-auto flex max-h-96 max-w-6xl flex-col gap-3 overflow-y-auto p-4">

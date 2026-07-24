@@ -28,6 +28,7 @@ interface ProgressionState {
     toIndex?: number,
   ) => void
   clearAll: () => void
+  setLines: (lines: BoardLine[]) => void
 }
 
 function newLine(index: number): BoardLine {
@@ -119,6 +120,8 @@ export const useProgressionStore = create<ProgressionState>()(
         }),
 
       clearAll: () => set({ lines: [newLine(1)] }),
+
+      setLines: (lines) => set({ lines: lines.length > 0 ? lines : [newLine(1)] }),
     }),
     {
       name: 'guitar-progression',
