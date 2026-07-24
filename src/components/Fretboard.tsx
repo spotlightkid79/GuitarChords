@@ -18,6 +18,7 @@ interface NotesFretboardProps {
   mode: 'notes'
   highlightNote?: NoteName | null
   fretCount?: number
+  onNoteClick?: (note: NoteName) => void
 }
 
 type FretboardProps = ChordFretboardProps | ScaleFretboardProps | NotesFretboardProps
@@ -142,11 +143,13 @@ function NeckDiagram({
   isVisible,
   isEmphasis,
   ariaLabel,
+  onNoteClick,
 }: {
   fretCount?: number
   isVisible: (note: NoteName) => boolean
   isEmphasis: (note: NoteName) => boolean
   ariaLabel: string
+  onNoteClick?: (note: NoteName) => void
 }) {
   const width = Math.max(640, fretCount * 52)
   const height = 190
@@ -222,7 +225,11 @@ function NeckDiagram({
           const x = fret === 0 ? padLeft + 8 : padLeft + fretGap * (fret - 0.5)
           const y = padTop + row * stringGap
           return (
-            <g key={`${row}-${fret}`}>
+            <g
+              key={`${row}-${fret}`}
+              onClick={onNoteClick ? () => onNoteClick(note) : undefined}
+              style={onNoteClick ? { cursor: 'pointer' } : undefined}
+            >
               <circle cx={x} cy={y} r="9.5" fill={emphasis ? '#c084fc' : '#2e303a'} stroke={emphasis ? '#c084fc' : '#6b6b78'} strokeWidth="1.5" />
               <text x={x} y={y + 3.5} textAnchor="middle" fontSize="9" fontWeight={emphasis ? 700 : 400} fill={emphasis ? '#0f1115' : '#e8e8ec'}>
                 {note}
@@ -247,13 +254,18 @@ function ScaleNeck({ rootNote, scaleType, fretCount = 12 }: Omit<ScaleFretboardP
   )
 }
 
-function NotesNeck({ highlightNote = null, fretCount = 12 }: Omit<NotesFretboardProps, 'mode'>) {
+function NotesNeck({
+  highlightNote = null,
+  fretCount = 12,
+  onNoteClick,
+}: Omit<NotesFretboardProps, 'mode'>) {
   return (
     <NeckDiagram
       fretCount={fretCount}
       isVisible={() => true}
       isEmphasis={(note) => highlightNote !== null && note === highlightNote}
       ariaLabel={highlightNote ? `Fretboard notes, highlighting ${highlightNote}` : 'Fretboard notes'}
+      onNoteClick={onNoteClick}
     />
   )
 }
