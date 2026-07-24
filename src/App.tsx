@@ -4,6 +4,7 @@ import NavBar, { type Tab } from './components/NavBar'
 import ChordLibrary from './components/ChordLibrary'
 import ScaleLibrary from './components/ScaleLibrary'
 import NotesExplorer from './components/NotesExplorer'
+import SongsLibrary from './components/SongsLibrary'
 import ProgressionBoard from './components/ProgressionBoard'
 import { useProgressionStore, type BoardLine } from './store/progressionStore'
 
@@ -64,6 +65,7 @@ export default function App() {
           {tab === 'chords' && <ChordLibrary />}
           {tab === 'scales' && <ScaleLibrary />}
           {tab === 'notes' && <NotesExplorer />}
+          {tab === 'songs' && <SongsLibrary />}
         </main>
         <ProgressionBoard />
       </div>
