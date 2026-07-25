@@ -15,16 +15,26 @@ function midiToFrequency(midi: number): number {
   return 440 * 2 ** ((midi - 69) / 12)
 }
 
-let audioContext: AudioContext | null = null
+// Held on `window` rather than a plain module-level variable so it survives Vite's dev-time Hot
+// Module Replacement. When HMR re-evaluates this module (e.g. after editing a file that imports
+// it), a module-level variable would silently reset, orphaning the old (still-open) AudioContext
+// and creating a new one on the next play — and browsers cap how many live AudioContexts a page
+// can have open at once, so enough hot-reloads in one session eventually exhausts that cap and
+// new contexts silently stop producing sound until a full page reload.
+declare global {
+  interface Window {
+    __guitarAudioContext?: AudioContext
+  }
+}
 
 function getAudioContext(): AudioContext {
-  if (!audioContext) {
+  if (!window.__guitarAudioContext) {
     // Older Safari only exposes the constructor under the webkit-prefixed name.
     const Ctor: AudioContextConstructor =
       window.AudioContext ?? (window as unknown as { webkitAudioContext: AudioContextConstructor }).webkitAudioContext
-    audioContext = new Ctor()
+    window.__guitarAudioContext = new Ctor()
   }
-  return audioContext
+  return window.__guitarAudioContext
 }
 
 // Wrapped in a function so TS doesn't (incorrectly) narrow this live, browser-mutated getter across the await below.
