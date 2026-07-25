@@ -12,6 +12,8 @@ import type { NoteName } from './lib/music-theory'
 
 // MelodyBoard pulls in vexflow (a large music-notation library) only needed on the Notes tab.
 const MelodyBoard = lazy(() => import('./components/MelodyBoard'))
+// MelodyLibrary additionally pulls in the Guitar Pro importer (alphaTab) only when the user imports a file.
+const MelodyLibrary = lazy(() => import('./components/MelodyLibrary'))
 
 function locateItem(lines: BoardLine[], instanceId: string) {
   for (const line of lines) {
@@ -128,6 +130,16 @@ export default function App() {
           {tab === 'scales' && <ScaleLibrary />}
           {tab === 'notes' && <NotesExplorer />}
           {tab === 'songs' && <SongsLibrary />}
+          {tab === 'library' && (
+            <Suspense fallback={null}>
+              <MelodyLibrary
+                onEditInNotes={(lines) => {
+                  useMelodyStore.getState().setLines(lines)
+                  setTab('notes')
+                }}
+              />
+            </Suspense>
+          )}
         </main>
         {(tab === 'chords' || tab === 'scales') && <ProgressionBoard />}
         {tab === 'notes' && (
