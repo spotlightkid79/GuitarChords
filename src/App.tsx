@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import NavBar, { type Tab } from './components/NavBar'
 import ChordLibrary from './components/ChordLibrary'
@@ -6,10 +6,12 @@ import ScaleLibrary from './components/ScaleLibrary'
 import NotesExplorer from './components/NotesExplorer'
 import SongsLibrary from './components/SongsLibrary'
 import ProgressionBoard from './components/ProgressionBoard'
-import MelodyBoard from './components/MelodyBoard'
 import { useProgressionStore, type BoardLine } from './store/progressionStore'
 import { useMelodyStore, type MelodyLine } from './store/melodyStore'
 import type { NoteName } from './lib/music-theory'
+
+// MelodyBoard pulls in vexflow (a large music-notation library) only needed on the Notes tab.
+const MelodyBoard = lazy(() => import('./components/MelodyBoard'))
 
 function locateItem(lines: BoardLine[], instanceId: string) {
   for (const line of lines) {
@@ -124,7 +126,11 @@ export default function App() {
           {tab === 'songs' && <SongsLibrary />}
         </main>
         {(tab === 'chords' || tab === 'scales') && <ProgressionBoard />}
-        {tab === 'notes' && <MelodyBoard />}
+        {tab === 'notes' && (
+          <Suspense fallback={<div className="h-24 border-t border-white/10 bg-[#14151b]" />}>
+            <MelodyBoard />
+          </Suspense>
+        )}
       </div>
     </DndContext>
   )

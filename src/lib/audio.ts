@@ -1,8 +1,5 @@
 import type { ChordShape } from '../data/chords'
-import { STANDARD_TUNING, noteIndex } from './music-theory'
-
-// Standard tuning octaves, low E .. high E (E2 A2 D3 G3 B3 E4).
-const STRING_OCTAVE = [2, 2, 3, 3, 3, 4]
+import { midiAtFret } from './music-theory'
 
 const STRUM_DELAY = 0.07
 const CHORD_DURATION = 2.2
@@ -13,10 +10,6 @@ const NOTE_DURATION = 0.9
 const SCHEDULE_LEAD_IN = 0.08
 
 type AudioContextConstructor = new () => AudioContext
-
-function midiForOpenString(stringIndex: number): number {
-  return (STRING_OCTAVE[stringIndex] + 1) * 12 + noteIndex(STANDARD_TUNING[stringIndex])
-}
 
 function midiToFrequency(midi: number): number {
   return 440 * 2 ** ((midi - 69) / 12)
@@ -73,7 +66,7 @@ function scheduleChord(ctx: AudioContext, chord: ChordShape, startTime: number) 
   let stringsPlayed = 0
   chord.frets.forEach((fret, stringIndex) => {
     if (typeof fret !== 'number') return
-    const freq = midiToFrequency(midiForOpenString(stringIndex) + fret)
+    const freq = midiToFrequency(midiAtFret(stringIndex, fret))
     scheduleNote(ctx, freq, startTime + stringsPlayed * STRUM_DELAY, CHORD_DURATION)
     stringsPlayed += 1
   })
@@ -115,12 +108,12 @@ export function playNotes(positions: FretPosition[], onNoteStart?: (position: Fr
   if (positions.length === 0) return 0
   const ctx = getAudioContext()
   const sorted = [...positions].sort(
-    (a, b) => midiForOpenString(a.stringIndex) + a.fret - (midiForOpenString(b.stringIndex) + b.fret),
+    (a, b) => midiAtFret(a.stringIndex, a.fret) - midiAtFret(b.stringIndex, b.fret),
   )
   void ensureRunning(ctx).then(() => {
     let time = ctx.currentTime + SCHEDULE_LEAD_IN
     sorted.forEach((position, i) => {
-      const freq = midiToFrequency(midiForOpenString(position.stringIndex) + position.fret)
+      const freq = midiToFrequency(midiAtFret(position.stringIndex, position.fret))
       scheduleNote(ctx, freq, time, NOTE_DURATION)
       if (onNoteStart) {
         setTimeout(() => onNoteStart(position, i), (SCHEDULE_LEAD_IN + i * NOTE_DURATION) * 1000)

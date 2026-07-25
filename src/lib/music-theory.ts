@@ -37,3 +37,22 @@ export function getIntervalNotes(root: string, intervals: number[]): NoteName[] 
 }
 
 export const ALL_ROOTS: NoteName[] = [...NOTE_NAMES]
+
+// Standard tuning octaves, low E .. high E (E2 A2 D3 G3 B3 E4).
+const STRING_OCTAVE = [2, 2, 3, 3, 3, 4]
+
+export function midiForOpenString(stringIndex: number): number {
+  return (STRING_OCTAVE[stringIndex] + 1) * 12 + noteIndex(STANDARD_TUNING[stringIndex])
+}
+
+export function midiAtFret(stringIndex: number, fret: number): number {
+  return midiForOpenString(stringIndex) + fret
+}
+
+export function midiToNoteName(midi: number): NoteName {
+  return NOTE_NAMES[((midi % 12) + 12) % 12]
+}
+
+export function midiToOctave(midi: number): number {
+  return Math.floor(midi / 12) - 1
+}
