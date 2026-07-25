@@ -282,7 +282,7 @@ export default function ProgressionBoard() {
       .filter((x): x is { item: BoardItem; chord: ChordShape } => !!x.chord)
     if (withChords.length === 0) return
     const token = ++playbackTokenRef.current
-    const totalDuration = playChordSequence(
+    const { loopDuration } = playChordSequence(
       withChords.map((x) => x.chord),
       (_chord, i) => {
         if (playbackTokenRef.current !== token) return
@@ -291,7 +291,7 @@ export default function ProgressionBoard() {
     )
     window.setTimeout(() => {
       if (playbackTokenRef.current === token) setPlayingInstanceId(null)
-    }, totalDuration * 1000)
+    }, loopDuration * 1000)
   }
 
   return (

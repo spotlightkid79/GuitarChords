@@ -45,7 +45,7 @@ async function ensureRunning(ctx: AudioContext) {
   }
 }
 
-function scheduleNote(ctx: AudioContext, freq: number, startTime: number, duration: number) {
+function scheduleNote(ctx: AudioContext, freq: number, startTime: number, duration: number): OscillatorNode {
   const osc = ctx.createOscillator()
   osc.type = 'triangle'
   osc.frequency.value = freq
@@ -60,16 +60,28 @@ function scheduleNote(ctx: AudioContext, freq: number, startTime: number, durati
 
   osc.start(startTime)
   osc.stop(startTime + duration + 0.05)
+  return osc
 }
 
-function scheduleChord(ctx: AudioContext, chord: ChordShape, startTime: number) {
+function scheduleChord(ctx: AudioContext, chord: ChordShape, startTime: number): OscillatorNode[] {
+  const oscillators: OscillatorNode[] = []
   let stringsPlayed = 0
   chord.frets.forEach((fret, stringIndex) => {
     if (typeof fret !== 'number') return
     const freq = midiToFrequency(midiAtFret(stringIndex, fret))
-    scheduleNote(ctx, freq, startTime + stringsPlayed * STRUM_DELAY, CHORD_DURATION)
+    oscillators.push(scheduleNote(ctx, freq, startTime + stringsPlayed * STRUM_DELAY, CHORD_DURATION))
     stringsPlayed += 1
   })
+  return oscillators
+}
+
+/** Immediately silences an oscillator, whether it's already sounding or its start time is still in the future. */
+function stopOscillator(osc: OscillatorNode) {
+  try {
+    osc.stop()
+  } catch {
+    // Already stopped/ended — nothing to do.
+  }
 }
 
 /** Plays a single chord as a slow strum, low string to high string. */
@@ -80,25 +92,71 @@ export function playChord(chord: ChordShape) {
   })
 }
 
+export interface ChordSequenceHandle {
+  /** Duration of a single pass through the sequence, in seconds — for a looping playback this is
+   * one loop's length, not the (possibly infinite) total. */
+  loopDuration: number
+  /** Immediately silences everything scheduled by this call, including chords queued for later
+   * in the sequence, and cancels any pending loop repeats. */
+  stop: () => void
+}
+
 /**
- * Plays a list of chords back to back.
+ * Plays a list of chords back to back, optionally repeating.
  * `onChordStart`, if given, fires (via setTimeout, so it's approximate but good enough for UI
- * highlighting) right as each chord begins. Returns the total playback duration in seconds.
+ * highlighting) right as each chord begins.
+ * By default plays once through. Pass `{ repeatCount: N }` to repeat N times, or `{ loop: true }`
+ * to repeat indefinitely until `stop()` is called.
  */
-export function playChordSequence(chords: ChordShape[], onChordStart?: (chord: ChordShape, index: number) => void): number {
-  if (chords.length === 0) return 0
+export function playChordSequence(
+  chords: ChordShape[],
+  onChordStart?: (chord: ChordShape, index: number) => void,
+  options?: { loop?: boolean; repeatCount?: number },
+): ChordSequenceHandle {
+  const loopDuration = chords.length * CHORD_DURATION
+  if (chords.length === 0) return { loopDuration, stop: () => {} }
+
   const ctx = getAudioContext()
-  void ensureRunning(ctx).then(() => {
-    let time = ctx.currentTime + SCHEDULE_LEAD_IN
-    chords.forEach((chord, i) => {
-      scheduleChord(ctx, chord, time)
-      if (onChordStart) {
-        setTimeout(() => onChordStart(chord, i), (SCHEDULE_LEAD_IN + i * CHORD_DURATION) * 1000)
-      }
-      time += CHORD_DURATION
+  const repeatCount = options?.loop ? Infinity : Math.max(1, options?.repeatCount ?? 1)
+
+  let stopped = false
+  const activeOscillators: OscillatorNode[] = []
+  const pendingTimeouts: number[] = []
+
+  function schedulePass(passIndex: number) {
+    if (stopped || passIndex >= repeatCount) return
+    void ensureRunning(ctx).then(() => {
+      if (stopped) return
+      let time = ctx.currentTime + SCHEDULE_LEAD_IN
+      chords.forEach((chord, i) => {
+        activeOscillators.push(...scheduleChord(ctx, chord, time))
+        if (onChordStart) {
+          const id = window.setTimeout(
+            () => {
+              if (!stopped) onChordStart(chord, i)
+            },
+            (SCHEDULE_LEAD_IN + i * CHORD_DURATION) * 1000,
+          )
+          pendingTimeouts.push(id)
+        }
+        time += CHORD_DURATION
+      })
+      const nextPassId = window.setTimeout(() => schedulePass(passIndex + 1), loopDuration * 1000)
+      pendingTimeouts.push(nextPassId)
     })
-  })
-  return chords.length * CHORD_DURATION
+  }
+
+  schedulePass(0)
+
+  function stop() {
+    stopped = true
+    pendingTimeouts.forEach((id) => clearTimeout(id))
+    pendingTimeouts.length = 0
+    activeOscillators.forEach(stopOscillator)
+    activeOscillators.length = 0
+  }
+
+  return { loopDuration, stop }
 }
 
 export interface FretPosition {

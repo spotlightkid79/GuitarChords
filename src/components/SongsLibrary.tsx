@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CHORDS, type ChordShape } from '../data/chords'
-import { playChord, playChordSequence } from '../lib/audio'
+import { playChord, playChordSequence, type ChordSequenceHandle } from '../lib/audio'
 import { downloadSong } from '../lib/songFile'
 import { useScrollPlayingIntoView } from '../lib/useScrollPlayingIntoView'
 import { useSongsStore, type SavedSong } from '../store/songsStore'
@@ -9,6 +9,14 @@ import { CardBody } from './ChordCard'
 import ExpandToggle from './ExpandToggle'
 
 const chordById = new Map(CHORDS.map((c) => [c.id, c]))
+
+const LOOP_OPTIONS: { value: string; label: string }[] = [
+  { value: '1', label: 'Off' },
+  { value: '2', label: '2×' },
+  { value: '4', label: '4×' },
+  { value: '8', label: '8×' },
+  { value: 'infinite', label: '∞' },
+]
 
 function countChords(song: SavedSong) {
   return song.lines.reduce((sum, l) => sum + l.items.length, 0)
@@ -31,8 +39,12 @@ function SongCard({
   const [editing, setEditing] = useState(false)
   const [draftName, setDraftName] = useState(song.name)
   const [playingInstanceId, setPlayingInstanceId] = useState<string | null>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [loopSetting, setLoopSetting] = useState('1')
   const playbackTokenRef = useRef(0)
+  const playbackHandleRef = useRef<ChordSequenceHandle | null>(null)
   useScrollPlayingIntoView(playingInstanceId)
+  useEffect(() => () => playbackHandleRef.current?.stop(), [])
   const isActive = activeSongId === song.id
   const chordCount = countChords(song)
   const preview = song.lines.flatMap((l) => l.items)
@@ -42,22 +54,47 @@ function SongCard({
     deleteSong(song.id)
   }
 
+  function handleStop() {
+    playbackHandleRef.current?.stop()
+    playbackHandleRef.current = null
+    playbackTokenRef.current++
+    setIsPlaying(false)
+    setPlayingInstanceId(null)
+  }
+
   function handlePlay() {
+    if (isPlaying) {
+      handleStop()
+      return
+    }
     const withChords = preview
       .map((item) => ({ item, chord: chordById.get(item.chordId) }))
       .filter((x): x is { item: BoardItem; chord: ChordShape } => !!x.chord)
     if (withChords.length === 0) return
     const token = ++playbackTokenRef.current
-    const totalDuration = playChordSequence(
+    const loop = loopSetting === 'infinite'
+    const repeatCount = Number(loopSetting) || 1
+    const handle = playChordSequence(
       withChords.map((x) => x.chord),
       (_chord, i) => {
         if (playbackTokenRef.current !== token) return
         setPlayingInstanceId(withChords[i].item.instanceId)
       },
+      loop ? { loop: true } : { repeatCount },
     )
-    window.setTimeout(() => {
-      if (playbackTokenRef.current === token) setPlayingInstanceId(null)
-    }, totalDuration * 1000)
+    playbackHandleRef.current = handle
+    setIsPlaying(true)
+    if (!loop) {
+      window.setTimeout(
+        () => {
+          if (playbackTokenRef.current !== token) return
+          setIsPlaying(false)
+          setPlayingInstanceId(null)
+          playbackHandleRef.current = null
+        },
+        handle.loopDuration * repeatCount * 1000,
+      )
+    }
   }
 
   return (
@@ -67,16 +104,6 @@ function SongCard({
       }`}
     >
       <div className="absolute left-2 top-2 flex items-center gap-1">
-        <button
-          type="button"
-          disabled={chordCount === 0}
-          onClick={handlePlay}
-          aria-label="Play song"
-          title="Play song"
-          className="flex h-4 w-4 items-center justify-center rounded-sm border border-zinc-500 text-[9px] leading-none text-zinc-400 hover:border-zinc-300 hover:text-zinc-200 disabled:opacity-30"
-        >
-          ▶
-        </button>
         <button
           type="button"
           onClick={() => downloadSong(song.name, song.lines)}
@@ -126,6 +153,36 @@ function SongCard({
           {song.name}
         </button>
       )}
+
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          disabled={chordCount === 0}
+          onClick={handlePlay}
+          aria-label={isPlaying ? 'Stop' : 'Play song'}
+          title={isPlaying ? 'Stop' : 'Play song'}
+          className={`flex h-5 items-center justify-center rounded-sm border px-1.5 text-[10px] leading-none transition-colors disabled:opacity-30 ${
+            isPlaying
+              ? 'border-amber-400 text-amber-300 hover:border-amber-300'
+              : 'border-zinc-500 text-zinc-400 hover:border-zinc-300 hover:text-zinc-200'
+          }`}
+        >
+          {isPlaying ? '■ Stop' : '▶ Play'}
+        </button>
+        <select
+          value={loopSetting}
+          onChange={(e) => setLoopSetting(e.target.value)}
+          disabled={isPlaying}
+          title="Repeat"
+          className="h-5 rounded-sm border border-zinc-500 bg-transparent px-1 text-[10px] leading-none text-zinc-400 disabled:opacity-50"
+        >
+          {LOOP_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value} className="bg-[#1a1b22] text-zinc-200">
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div className="text-xs text-zinc-500">
         {song.lines.length} line{song.lines.length === 1 ? '' : 's'} · {chordCount} chord{chordCount === 1 ? '' : 's'}
