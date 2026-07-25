@@ -60,6 +60,8 @@ function ChordSheetLine({ line, onSelect }: { line: string; onSelect: (chord: Ch
 export default function ChordSheet({ onSendToChords }: { onSendToChords: () => void }) {
   const [text, setText] = useState(PLACEHOLDER)
   const [selected, setSelected] = useState<ChordShape | null>(null)
+  const [songName, setSongName] = useState('Untitled Song')
+  const [savedMessage, setSavedMessage] = useState<string | null>(null)
 
   const stanzas = useMemo(() => extractStanzas(text), [text])
   const totalChords = useMemo(() => stanzas.reduce((n, s) => n + s.chords.length, 0), [stanzas])
@@ -68,8 +70,8 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
     [stanzas],
   )
 
-  function handleSendToChords() {
-    const lines: BoardLine[] = stanzas.map((stanza, i) => ({
+  function buildBoardLines(): BoardLine[] {
+    return stanzas.map((stanza, i) => ({
       id: crypto.randomUUID(),
       name: `Line ${i + 1}`,
       items: stanza.chords
@@ -77,9 +79,18 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
         .filter((c): c is ChordShape => !!c)
         .map((c) => ({ instanceId: crypto.randomUUID(), chordId: c.id })),
     }))
-    useProgressionStore.getState().setLines(lines)
+  }
+
+  function handleSendToChords() {
+    useProgressionStore.getState().setLines(buildBoardLines())
     useSongsStore.getState().setActive(null)
     onSendToChords()
+  }
+
+  function handleSaveAsSong() {
+    const trimmed = songName.trim() || 'Untitled Song'
+    useSongsStore.getState().saveAsNew(trimmed, buildBoardLines())
+    setSavedMessage(`Saved as "${trimmed}" — find it in the Songs tab.`)
   }
 
   return (
@@ -98,20 +109,39 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
           spellCheck={false}
           className="h-48 w-full resize-y rounded-lg border border-white/10 bg-white/5 p-3 font-mono text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-purple-400"
         />
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={songName}
+            onChange={(e) => {
+              setSongName(e.target.value)
+              setSavedMessage(null)
+            }}
+            onFocus={(e) => e.currentTarget.select()}
+            placeholder="Song name"
+            className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-purple-400"
+          />
+          <button
+            type="button"
+            disabled={totalChords === 0}
+            onClick={handleSaveAsSong}
+            className="rounded-md bg-purple-500/20 px-3 py-1.5 text-xs font-medium text-purple-300 hover:bg-purple-500/30 disabled:opacity-40"
+          >
+            Save as Song
+          </button>
           <button
             type="button"
             disabled={totalChords === 0}
             onClick={handleSendToChords}
-            className="rounded-md bg-purple-500/20 px-3 py-1.5 text-xs font-medium text-purple-300 hover:bg-purple-500/30 disabled:opacity-40"
+            className="text-xs text-zinc-500 hover:text-zinc-300 disabled:opacity-40"
           >
-            Send to Song board
+            Send to Song board to edit first
           </button>
           <span className="text-xs text-zinc-500">
             {totalChords} chord{totalChords === 1 ? '' : 's'} found across {stanzas.length} section
             {stanzas.length === 1 ? '' : 's'}
           </span>
         </div>
+        {savedMessage && <p className="text-xs text-emerald-400">✓ {savedMessage}</p>}
         {approximatedCount > 0 && (
           <p className="text-xs text-amber-400/90">
             ⚠ {approximatedCount} chord{approximatedCount === 1 ? '' : 's'} used an approximated shape (sus/add/dim/
