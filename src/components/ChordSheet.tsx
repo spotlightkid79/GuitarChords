@@ -14,16 +14,29 @@ for (const chord of CHORDS) {
   else chordCandidatesByRootQuality.set(key, [chord])
 }
 
-/** Picks a single default shape for a root+quality — used for the inline sheet preview, where there's no surrounding sequence to place it near. */
-function findChord(root: string, quality: string): ChordShape | undefined {
-  return chordCandidatesByRootQuality.get(`${root}-${quality}`)?.[0]
+export type VoicingPreference = 'any' | 'open' | 'barre'
+
+/** Narrows candidates to the preferred voicing type, but falls back to the full list when this
+ * chord has no shape of that type at all (e.g. Bm has no open shape). */
+function filterByPreference(candidates: ChordShape[], preference: VoicingPreference): ChordShape[] {
+  if (preference === 'any') return candidates
+  const filtered = candidates.filter((c) => (preference === 'open' ? c.voicing === 'open' : c.voicing !== 'open'))
+  return filtered.length > 0 ? filtered : candidates
 }
 
-/** Among every voicing available for this root+quality (open, barre-E, barre-A), picks whichever sits closest on the neck to `nearFret` — keeps a chord sequence from jumping around the fretboard when a closer voicing of the same chord exists. */
-function findClosestChord(root: string, quality: string, nearFret: number): ChordShape | undefined {
+/** Picks a single default shape for a root+quality — used for the inline sheet preview, where there's no surrounding sequence to place it near. */
+function findChord(root: string, quality: string, preference: VoicingPreference = 'any'): ChordShape | undefined {
+  const candidates = chordCandidatesByRootQuality.get(`${root}-${quality}`)
+  if (!candidates) return undefined
+  return filterByPreference(candidates, preference)[0]
+}
+
+/** Among every voicing available for this root+quality (filtered to the voicing preference, open, barre-E, barre-A), picks whichever sits closest on the neck to `nearFret` — keeps a chord sequence from jumping around the fretboard when a closer voicing of the same chord exists. */
+function findClosestChord(root: string, quality: string, nearFret: number, preference: VoicingPreference): ChordShape | undefined {
   const candidates = chordCandidatesByRootQuality.get(`${root}-${quality}`)
   if (!candidates || candidates.length === 0) return undefined
-  return candidates.reduce((best, c) => (Math.abs(c.baseFret - nearFret) < Math.abs(best.baseFret - nearFret) ? c : best))
+  const pool = filterByPreference(candidates, preference)
+  return pool.reduce((best, c) => (Math.abs(c.baseFret - nearFret) < Math.abs(best.baseFret - nearFret) ? c : best))
 }
 
 const PLACEHOLDER = `Bm
@@ -33,7 +46,15 @@ Gitsem nereye kadar kalsam neye yarar
 Em
 Hiç anlatamadım, hiç anlamadılar`
 
-function ChordSheetLine({ line, onSelect }: { line: string; onSelect: (chord: ChordShape) => void }) {
+function ChordSheetLine({
+  line,
+  preference,
+  onSelect,
+}: {
+  line: string
+  preference: VoicingPreference
+  onSelect: (chord: ChordShape) => void
+}) {
   if (line.trim().length === 0) return <div className="h-5" />
   if (!isChordLine(line)) {
     return <div className="whitespace-pre text-zinc-300">{line}</div>
@@ -46,7 +67,7 @@ function ChordSheetLine({ line, onSelect }: { line: string; onSelect: (chord: Ch
     const start = match.index ?? 0
     if (start > cursor) nodes.push(line.slice(cursor, start))
     const parsed = parseChordToken(token)
-    const chord = parsed ? findChord(parsed.root, parsed.quality) : undefined
+    const chord = parsed ? findChord(parsed.root, parsed.quality, preference) : undefined
     if (chord) {
       nodes.push(
         <button
@@ -76,6 +97,7 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
   const [selected, setSelected] = useState<ChordShape | null>(null)
   const [songName, setSongName] = useState('Untitled Song')
   const [savedMessage, setSavedMessage] = useState<string | null>(null)
+  const [preference, setPreference] = useState<VoicingPreference>('barre')
 
   const stanzas = useMemo(() => extractStanzas(text), [text])
   const totalChords = useMemo(() => stanzas.reduce((n, s) => n + s.chords.length, 0), [stanzas])
@@ -94,7 +116,7 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
       name: `Line ${i + 1}`,
       items: stanza.chords
         .map((c) => {
-          const chord = findClosestChord(c.root, c.quality, currentFret)
+          const chord = findClosestChord(c.root, c.quality, currentFret, preference)
           if (chord) currentFret = chord.baseFret
           return chord
         })
@@ -131,6 +153,29 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
           spellCheck={false}
           className="h-48 w-full resize-y rounded-lg border border-white/10 bg-white/5 p-3 font-mono text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-purple-400"
         />
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-zinc-500">Voicing:</span>
+          <div className="flex items-center gap-0.5 rounded-lg border border-white/10 bg-white/[0.03] p-1">
+            {(
+              [
+                ['any', 'Any'],
+                ['open', 'Open'],
+                ['barre', 'Barre'],
+              ] as [VoicingPreference, string][]
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setPreference(value)}
+                className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
+                  preference === value ? 'bg-purple-500 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <input
             value={songName}
@@ -173,7 +218,7 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
 
         <div className="rounded-lg border border-white/10 bg-[#14151b] p-4 font-mono text-sm leading-6">
           {text.split('\n').map((line, i) => (
-            <ChordSheetLine key={i} line={line} onSelect={setSelected} />
+            <ChordSheetLine key={i} line={line} preference={preference} onSelect={setSelected} />
           ))}
         </div>
       </div>
