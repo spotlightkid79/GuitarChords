@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { CHORDS, type ChordShape } from '../data/chords'
 import { DEFAULT_CHORD_DURATION, playChord, playChordSequence, type ChordSequenceHandle } from '../lib/audio'
-import { downloadSong } from '../lib/songFile'
+import { importMultipleFiles, summarizeImport } from '../lib/importFiles'
+import { downloadAllSongs, downloadSong, parseSongFile } from '../lib/songFile'
 import { useScrollPlayingIntoView } from '../lib/useScrollPlayingIntoView'
 import { useSongsStore, type SavedSong } from '../store/songsStore'
 import type { BoardItem } from '../store/progressionStore'
@@ -260,12 +261,44 @@ function SongCard({
 
 export default function SongsLibrary() {
   const songs = useSongsStore((s) => s.songs)
+  const saveAsNew = useSongsStore((s) => s.saveAsNew)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    // Copy out of the live FileList before resetting e.target.value — clearing the input's value
+    // also empties that same FileList object, not just future reads of it.
+    const files = Array.from(e.target.files ?? [])
+    e.target.value = ''
+    if (files.length === 0) return
+    importMultipleFiles(files, parseSongFile).then((result) => {
+      result.imported.forEach((s) => saveAsNew(s.name, s.lines))
+      window.alert(summarizeImport(result, 'song'))
+    })
+  }
+
+  const importControls = (
+    <>
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        title="You can select multiple files at once"
+        className="text-xs text-zinc-500 hover:text-zinc-300"
+      >
+        Import…
+      </button>
+      <input ref={fileInputRef} type="file" accept="application/json" multiple onChange={handleImportFile} className="hidden" />
+    </>
+  )
 
   if (songs.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center py-16 text-center text-sm text-zinc-500">
-        No songs saved yet. Head to the Chords tab, build a progression in the Song board, then hit "Save as new song".
+      <div className="flex h-full flex-col items-center justify-center gap-3 py-16 text-center text-sm text-zinc-500">
+        <p>
+          No songs saved yet. Head to the Chords tab, build a progression in the Song board, then hit "Save as new
+          song" — or import songs you've already exported.
+        </p>
+        <div className="flex items-center gap-3">{importControls}</div>
       </div>
     )
   }
@@ -288,10 +321,18 @@ export default function SongsLibrary() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-3">
-        <ExpandToggle expanded={allExpanded} onClick={toggleAll} />
-        <span className="text-xs text-zinc-500">All · {songs.length} saved</span>
-        <h2 className="text-lg font-semibold text-zinc-100">Your songs</h2>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <ExpandToggle expanded={allExpanded} onClick={toggleAll} />
+          <span className="text-xs text-zinc-500">All · {songs.length} saved</span>
+          <h2 className="text-lg font-semibold text-zinc-100">Your songs</h2>
+        </div>
+        <div className="flex items-center gap-3 text-xs text-zinc-500">
+          <button type="button" onClick={() => downloadAllSongs(songs)} className="hover:text-zinc-300">
+            Export all
+          </button>
+          {importControls}
+        </div>
       </div>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
         {sorted.map((song) => (
