@@ -32,6 +32,7 @@ interface MelodyState {
   reorderInLine: (lineId: string, fromIndex: number, toIndex: number) => void
   moveItemToLine: (fromLineId: string, toLineId: string, instanceId: string, toIndex?: number) => void
   clearAll: () => void
+  setLines: (lines: MelodyLine[]) => void
 }
 
 function newLine(index: number): MelodyLine {
@@ -150,6 +151,8 @@ export const useMelodyStore = create<MelodyState>()(
         }),
 
       clearAll: () => set({ lines: [newLine(1)] }),
+
+      setLines: (lines) => set({ lines: lines.length > 0 ? lines : [newLine(1)] }),
     }),
     { name: 'guitar-melody' },
   ),

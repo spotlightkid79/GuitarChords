@@ -1,7 +1,9 @@
 import { useDroppable } from '@dnd-kit/core'
-import { useRef, useState } from 'react'
+import { useRef, useState, type ChangeEvent } from 'react'
 import { playNotes } from '../lib/audio'
+import { downloadAllMelodies, downloadMelody, parseMelodyFile } from '../lib/melodyFile'
 import { COMMON_TIME_SIGNATURES, DURATIONS, isNoteEvent, sigLabel, type DurationCode, type MelodyEvent, type NoteEvent } from '../lib/rhythm'
+import { useMelodiesStore } from '../store/melodiesStore'
 import { lastTimeSignature, useMelodyStore, type MelodyLine } from '../store/melodyStore'
 import ExpandToggle from './ExpandToggle'
 import StaffView, { type StaffMode } from './StaffView'
@@ -211,8 +213,142 @@ function MelodyLineRow({
   )
 }
 
+function MelodyControls() {
+  const { lines, setLines, clearAll } = useMelodyStore()
+  const { melodies, activeMelodyId, saveAsNew, updateExisting, renameMelody, deleteMelody, setActive } =
+    useMelodiesStore()
+  const activeMelody = melodies.find((m) => m.id === activeMelodyId) ?? null
+  const [name, setName] = useState(activeMelody?.name ?? 'Untitled Melody')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  function handleSave() {
+    const trimmed = name.trim() || 'Untitled Melody'
+    if (activeMelody) {
+      updateExisting(activeMelody.id, lines)
+      if (trimmed !== activeMelody.name) renameMelody(activeMelody.id, trimmed)
+    } else {
+      saveAsNew(trimmed, lines)
+    }
+  }
+
+  function handleNew() {
+    clearAll()
+    setActive(null)
+    setName('Untitled Melody')
+  }
+
+  function handleLoad(id: string) {
+    const melody = melodies.find((m) => m.id === id)
+    if (!melody) return
+    setLines(melody.lines)
+    setActive(melody.id)
+    setName(melody.name)
+  }
+
+  function handleDelete() {
+    if (!activeMelody) return
+    if (!window.confirm(`Delete "${activeMelody.name}"? This can't be undone.`)) return
+    deleteMelody(activeMelody.id)
+    clearAll()
+    setName('Untitled Melody')
+  }
+
+  function handleExportCurrent() {
+    downloadMelody(name.trim() || 'Untitled Melody', lines)
+  }
+
+  function handleExportAll() {
+    if (melodies.length === 0) return
+    downloadAllMelodies(melodies)
+  }
+
+  function handleImportFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    file
+      .text()
+      .then((raw) => {
+        const imported = parseMelodyFile(raw)
+        imported.forEach((m) => saveAsNew(m.name, m.lines))
+        window.alert(
+          imported.length === 1 ? `Imported "${imported[0].name}".` : `Imported ${imported.length} melodies.`,
+        )
+      })
+      .catch((err) => {
+        window.alert(err instanceof Error ? err.message : 'Could not import that file.')
+      })
+  }
+
+  return (
+    <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 pb-2">
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onFocus={(e) => e.currentTarget.select()}
+        placeholder="Melody name"
+        className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-purple-400"
+      />
+      <button
+        type="button"
+        onClick={handleSave}
+        className="rounded-md bg-purple-500/20 px-2 py-1 text-xs font-medium text-purple-300 hover:bg-purple-500/30"
+      >
+        {activeMelody ? 'Save' : 'Save as new melody'}
+      </button>
+      <button type="button" onClick={handleNew} className="text-xs text-zinc-500 hover:text-zinc-300">
+        New melody
+      </button>
+
+      {melodies.length > 0 && (
+        <>
+          <select
+            value={activeMelodyId ?? ''}
+            onChange={(e) => handleLoad(e.target.value)}
+            className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-zinc-100"
+          >
+            <option value="" disabled>
+              Load a saved melody…
+            </option>
+            {melodies.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+          {activeMelody && (
+            <button type="button" onClick={handleDelete} className="text-xs text-zinc-500 hover:text-red-400">
+              Delete
+            </button>
+          )}
+        </>
+      )}
+
+      <span className="mx-1 h-4 w-px bg-white/10" aria-hidden="true" />
+
+      <button type="button" onClick={handleExportCurrent} className="text-xs text-zinc-500 hover:text-zinc-300">
+        Export current
+      </button>
+      {melodies.length > 0 && (
+        <button type="button" onClick={handleExportAll} className="text-xs text-zinc-500 hover:text-zinc-300">
+          Export all
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        className="text-xs text-zinc-500 hover:text-zinc-300"
+      >
+        Import…
+      </button>
+      <input ref={fileInputRef} type="file" accept="application/json" onChange={handleImportFile} className="hidden" />
+    </div>
+  )
+}
+
 export default function MelodyBoard() {
   const { lines, addLine, clearAll } = useMelodyStore()
+  const activeMelodyId = useMelodiesStore((s) => s.activeMelodyId)
   const [collapsed, setCollapsed] = useState(false)
   const [viewMode, setViewMode] = useState<StaffMode>('staff')
   const [playingItem, setPlayingItem] = useState<PlayingItem | null>(null)
@@ -283,6 +419,8 @@ export default function MelodyBoard() {
           </button>
         </div>
       </div>
+
+      <MelodyControls key={activeMelodyId ?? 'new'} />
 
       {!collapsed && (
         <div className="mx-auto flex max-h-96 max-w-6xl flex-col gap-3 overflow-y-auto p-4">
