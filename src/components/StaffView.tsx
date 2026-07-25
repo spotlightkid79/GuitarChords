@@ -21,6 +21,12 @@ import { layoutMeasures, sigLabel, type LayoutPiece, type MelodyEvent } from '..
 const WRITTEN_OCTAVE_OFFSET = 12
 const ACTIVE_COLOR = '#fbbf24'
 const AUTO_REST_COLOR = '#4b4b57'
+const DEFAULT_COLOR = '#e8e8ec'
+// VexFlow gives several sub-elements (note stems, ledger lines) their own hardcoded default
+// color from its internal theme, completely independent of the drawing context's ambient
+// fill/stroke — so they render pitch-black regardless of what color the noteheads use, unless
+// explicitly overridden per element/note.
+const DEFAULT_STYLE = { fillStyle: DEFAULT_COLOR, strokeStyle: DEFAULT_COLOR }
 const STRING_COUNT = 6
 const REST_KEY = 'b/4'
 
@@ -67,14 +73,16 @@ export default function StaffView({
     const renderer = new Renderer(container, Renderer.Backends.SVG)
     renderer.resize(totalWidth, height)
     const context = renderer.getContext()
-    context.setFillStyle('#e8e8ec')
-    context.setStrokeStyle('#e8e8ec')
+    context.setFillStyle(DEFAULT_COLOR)
+    context.setStrokeStyle(DEFAULT_COLOR)
 
     const flatNotes: { el: StemmableNote; piece: LayoutPiece }[] = []
     let x = 10
 
     measures.forEach((measure, i) => {
       const stave = mode === 'tab' ? new TabStave(x, staveY, measureWidths[i]) : new Stave(x, staveY, measureWidths[i])
+      stave.setStyle(DEFAULT_STYLE)
+      stave.setDefaultLedgerLineStyle({ strokeStyle: DEFAULT_COLOR, lineWidth: 1 })
       if (i === 0) stave.addClef(mode === 'tab' ? 'tab' : 'treble')
       if (measure.showTimeSignature && mode === 'staff') stave.addTimeSignature(sigLabel(measure.sig))
       stave.setContext(context).draw()
@@ -92,14 +100,14 @@ export default function StaffView({
           const tabString = STRING_COUNT - (piece.stringIndex ?? 0)
           const tabNote = new TabNote({ positions: [{ str: tabString, fret: piece.fret ?? 0 }], duration: piece.duration })
           if (piece.dotted) Dot.buildAndAttach([tabNote], { all: true })
-          if (isActive) tabNote.setStyle(activeStyle)
+          tabNote.setStyle(isActive ? activeStyle : DEFAULT_STYLE)
           return tabNote
         }
 
         if (piece.kind === 'rest') {
           const restNote = new StaveNote({ keys: [REST_KEY], duration: `${piece.duration}r` })
           if (piece.dotted) Dot.buildAndAttach([restNote], { all: true })
-          restNote.setStyle(piece.autoInserted ? dimStyle : isActive ? activeStyle : {})
+          restNote.setStyle(piece.autoInserted ? dimStyle : isActive ? activeStyle : DEFAULT_STYLE)
           return restNote
         }
 
@@ -108,11 +116,11 @@ export default function StaffView({
         const staveNote = new StaveNote({ keys: [key], duration: piece.duration })
         if (key.includes('#')) {
           const accidental = new Accidental('#')
-          if (isActive) accidental.setStyle(activeStyle)
+          accidental.setStyle(isActive ? activeStyle : DEFAULT_STYLE)
           staveNote.addModifier(accidental)
         }
         if (piece.dotted) Dot.buildAndAttach([staveNote], { all: true })
-        if (isActive) staveNote.setStyle(activeStyle)
+        staveNote.setStyle(isActive ? activeStyle : DEFAULT_STYLE)
         return staveNote
       })
 
@@ -164,6 +172,7 @@ export default function StaffView({
       for (let i = 0; i < flatNotes.length - 1; i++) {
         if (flatNotes[i].piece.tiedToNext && flatNotes[i].piece.kind === 'note') {
           const tie = new StaveTie({ firstNote: flatNotes[i].el, lastNote: flatNotes[i + 1].el })
+          tie.setStyle(DEFAULT_STYLE)
           tie.setContext(context).draw()
         }
       }
