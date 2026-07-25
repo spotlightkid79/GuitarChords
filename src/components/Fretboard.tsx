@@ -150,6 +150,7 @@ function NeckDiagram({
   widthPerFret = 52,
   dotRadius = 9.5,
   fontSize = 9,
+  height = 190,
 }: {
   fretCount?: number
   isVisible: (note: NoteName) => boolean
@@ -161,9 +162,9 @@ function NeckDiagram({
   widthPerFret?: number
   dotRadius?: number
   fontSize?: number
+  height?: number
 }) {
   const width = Math.max(minWidth, fretCount * widthPerFret)
-  const height = 190
   const padLeft = 28
   const padRight = 16
   const padTop = 14
@@ -296,10 +297,11 @@ function NotesNeck({
       }
       ariaLabel={highlightNote ? `Fretboard notes, highlighting ${highlightNote}` : 'Fretboard notes'}
       onNoteClick={onNoteClick}
-      minWidth={900}
-      widthPerFret={72}
-      dotRadius={12}
-      fontSize={11}
+      minWidth={1020}
+      widthPerFret={82}
+      dotRadius={13.5}
+      fontSize={12}
+      height={225}
     />
   )
 }
