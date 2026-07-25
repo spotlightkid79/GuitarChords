@@ -100,19 +100,27 @@ export interface FretPosition {
 }
 
 /**
- * Plays every given fretboard position one at a time, low to high.
+ * Plays every given fretboard position one at a time.
+ * By default positions are sorted low to high (used for "ring every matching note" on the
+ * fretboard); pass `sort: false` to play them in the given order instead (used for melody
+ * playback, where the composed order matters).
  * `onNoteStart`, if given, fires (via setTimeout, so it's approximate but good enough for UI highlighting)
  * right as each note begins. Returns the total playback duration in seconds.
  */
-export function playNotes(positions: FretPosition[], onNoteStart?: (position: FretPosition, index: number) => void): number {
+export function playNotes(
+  positions: FretPosition[],
+  onNoteStart?: (position: FretPosition, index: number) => void,
+  options?: { sort?: boolean },
+): number {
   if (positions.length === 0) return 0
   const ctx = getAudioContext()
-  const sorted = [...positions].sort(
-    (a, b) => midiAtFret(a.stringIndex, a.fret) - midiAtFret(b.stringIndex, b.fret),
-  )
+  const ordered =
+    options?.sort === false
+      ? positions
+      : [...positions].sort((a, b) => midiAtFret(a.stringIndex, a.fret) - midiAtFret(b.stringIndex, b.fret))
   void ensureRunning(ctx).then(() => {
     let time = ctx.currentTime + SCHEDULE_LEAD_IN
-    sorted.forEach((position, i) => {
+    ordered.forEach((position, i) => {
       const freq = midiToFrequency(midiAtFret(position.stringIndex, position.fret))
       scheduleNote(ctx, freq, time, NOTE_DURATION)
       if (onNoteStart) {

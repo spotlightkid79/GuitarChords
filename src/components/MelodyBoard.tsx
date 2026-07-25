@@ -1,7 +1,7 @@
 import { useDroppable } from '@dnd-kit/core'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { playNotes } from '../lib/audio'
-import { useMelodyStore, type MelodyLine } from '../store/melodyStore'
+import { useMelodyStore, type MelodyLine, type MelodyNoteItem } from '../store/melodyStore'
 import ExpandToggle from './ExpandToggle'
 import StaffView from './StaffView'
 
@@ -9,15 +9,28 @@ export function melodyLineDroppableId(lineId: string) {
   return `melody-line:${lineId}`
 }
 
-function MelodyLineRow({ line, index, total }: { line: MelodyLine; index: number; total: number }) {
+interface PlayingItem {
+  lineId: string
+  instanceId: string
+}
+
+function MelodyLineRow({
+  line,
+  index,
+  total,
+  activeInstanceId,
+  onPlay,
+}: {
+  line: MelodyLine
+  index: number
+  total: number
+  activeInstanceId: string | null
+  onPlay: () => void
+}) {
   const { removeItem, removeLine, renameLine, moveLine } = useMelodyStore()
   const { setNodeRef, isOver } = useDroppable({ id: melodyLineDroppableId(line.id) })
   const [editing, setEditing] = useState(false)
   const [draftName, setDraftName] = useState(line.name)
-
-  function handlePlay() {
-    playNotes(line.items.map((i) => ({ stringIndex: i.stringIndex, fret: i.fret })))
-  }
 
   return (
     <div className="flex items-start gap-3">
@@ -54,7 +67,7 @@ function MelodyLineRow({ line, index, total }: { line: MelodyLine; index: number
           <button
             type="button"
             disabled={line.items.length === 0}
-            onClick={handlePlay}
+            onClick={onPlay}
             className="hover:text-purple-300 disabled:opacity-30"
             aria-label="Play line"
             title="Play line"
@@ -97,7 +110,7 @@ function MelodyLineRow({ line, index, total }: { line: MelodyLine; index: number
             Drag notes here from the fretboard
           </p>
         )}
-        <StaffView items={line.items} onRemove={(instanceId) => removeItem(line.id, instanceId)} />
+        <StaffView items={line.items} onRemove={(instanceId) => removeItem(line.id, instanceId)} activeInstanceId={activeInstanceId} />
       </div>
     </div>
   )
@@ -106,8 +119,26 @@ function MelodyLineRow({ line, index, total }: { line: MelodyLine; index: number
 export default function MelodyBoard() {
   const { lines, addLine, clearAll } = useMelodyStore()
   const [collapsed, setCollapsed] = useState(false)
+  const [playingItem, setPlayingItem] = useState<PlayingItem | null>(null)
+  const playbackTokenRef = useRef(0)
 
-  const allNotes = lines.flatMap((l) => l.items).map((i) => ({ stringIndex: i.stringIndex, fret: i.fret }))
+  function playSequence(sequence: { lineId: string; item: MelodyNoteItem }[]) {
+    if (sequence.length === 0) return
+    const token = ++playbackTokenRef.current
+    const totalDuration = playNotes(
+      sequence.map(({ item }) => ({ stringIndex: item.stringIndex, fret: item.fret })),
+      (_position, i) => {
+        if (playbackTokenRef.current !== token) return
+        setPlayingItem({ lineId: sequence[i].lineId, instanceId: sequence[i].item.instanceId })
+      },
+      { sort: false },
+    )
+    window.setTimeout(() => {
+      if (playbackTokenRef.current === token) setPlayingItem(null)
+    }, totalDuration * 1000)
+  }
+
+  const allSequence = lines.flatMap((l) => l.items.map((item) => ({ lineId: l.id, item })))
 
   return (
     <div className="border-t border-white/10 bg-[#14151b]">
@@ -119,8 +150,8 @@ export default function MelodyBoard() {
         <div className="flex items-center gap-4">
           <button
             type="button"
-            disabled={allNotes.length === 0}
-            onClick={() => playNotes(allNotes)}
+            disabled={allSequence.length === 0}
+            onClick={() => playSequence(allSequence)}
             className="text-xs font-medium text-purple-300 hover:text-purple-200 disabled:opacity-30"
           >
             ▶ Play melody
@@ -137,7 +168,14 @@ export default function MelodyBoard() {
       {!collapsed && (
         <div className="mx-auto flex max-h-96 max-w-6xl flex-col gap-3 overflow-y-auto p-4">
           {lines.map((line, i) => (
-            <MelodyLineRow key={line.id} line={line} index={i} total={lines.length} />
+            <MelodyLineRow
+              key={line.id}
+              line={line}
+              index={i}
+              total={lines.length}
+              activeInstanceId={playingItem?.lineId === line.id ? playingItem.instanceId : null}
+              onPlay={() => playSequence(line.items.map((item) => ({ lineId: line.id, item })))}
+            />
           ))}
         </div>
       )}

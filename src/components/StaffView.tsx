@@ -17,12 +17,16 @@ function vexKey(soundingMidi: number): string {
   return `${letter}${accidental}/${octave}`
 }
 
+const ACTIVE_COLOR = '#fbbf24'
+
 export default function StaffView({
   items,
   onRemove,
+  activeInstanceId = null,
 }: {
   items: MelodyNoteItem[]
   onRemove?: (instanceId: string) => void
+  activeInstanceId?: string | null
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -51,8 +55,14 @@ export default function StaffView({
       const midi = midiAtFret(item.stringIndex, item.fret)
       const key = vexKey(midi)
       const note = new StaveNote({ keys: [key], duration: 'q' })
+      const isActive = item.instanceId === activeInstanceId
       if (key.includes('#')) {
-        note.addModifier(new Accidental('#'))
+        const accidental = new Accidental('#')
+        if (isActive) accidental.setStyle({ fillStyle: ACTIVE_COLOR, strokeStyle: ACTIVE_COLOR })
+        note.addModifier(accidental)
+      }
+      if (isActive) {
+        note.setStyle({ fillStyle: ACTIVE_COLOR, strokeStyle: ACTIVE_COLOR })
       }
       return note
     })
@@ -67,7 +77,7 @@ export default function StaffView({
         el.addEventListener('click', () => onRemove(items[i].instanceId))
       })
     }
-  }, [items, onRemove])
+  }, [items, onRemove, activeInstanceId])
 
   return <div ref={containerRef} className="overflow-x-auto" />
 }
