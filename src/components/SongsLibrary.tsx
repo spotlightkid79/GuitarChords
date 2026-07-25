@@ -185,12 +185,10 @@ export default function SongsLibrary() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <ExpandToggle expanded={allExpanded} onClick={toggleAll} />
+        <span className="text-xs text-zinc-500">All · {songs.length} saved</span>
         <h2 className="text-lg font-semibold text-zinc-100">Your songs</h2>
-        <div className="flex items-center gap-2">
-          <ExpandToggle expanded={allExpanded} onClick={toggleAll} />
-          <span className="text-xs text-zinc-500">All · {songs.length} saved</span>
-        </div>
       </div>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
         {sorted.map((song) => (
