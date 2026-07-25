@@ -3,7 +3,7 @@ import { useRef, useState } from 'react'
 import { playNotes } from '../lib/audio'
 import { useMelodyStore, type MelodyLine, type MelodyNoteItem } from '../store/melodyStore'
 import ExpandToggle from './ExpandToggle'
-import StaffView from './StaffView'
+import StaffView, { type StaffMode } from './StaffView'
 
 export function melodyLineDroppableId(lineId: string) {
   return `melody-line:${lineId}`
@@ -20,12 +20,14 @@ function MelodyLineRow({
   total,
   activeInstanceId,
   onPlay,
+  viewMode,
 }: {
   line: MelodyLine
   index: number
   total: number
   activeInstanceId: string | null
   onPlay: () => void
+  viewMode: StaffMode
 }) {
   const { removeItem, removeLine, renameLine, moveLine } = useMelodyStore()
   const { setNodeRef, isOver } = useDroppable({ id: melodyLineDroppableId(line.id) })
@@ -110,7 +112,12 @@ function MelodyLineRow({
             Drag notes here from the fretboard
           </p>
         )}
-        <StaffView items={line.items} onRemove={(instanceId) => removeItem(line.id, instanceId)} activeInstanceId={activeInstanceId} />
+        <StaffView
+          items={line.items}
+          onRemove={(instanceId) => removeItem(line.id, instanceId)}
+          activeInstanceId={activeInstanceId}
+          mode={viewMode}
+        />
       </div>
     </div>
   )
@@ -119,6 +126,7 @@ function MelodyLineRow({
 export default function MelodyBoard() {
   const { lines, addLine, clearAll } = useMelodyStore()
   const [collapsed, setCollapsed] = useState(false)
+  const [viewMode, setViewMode] = useState<StaffMode>('staff')
   const [playingItem, setPlayingItem] = useState<PlayingItem | null>(null)
   const playbackTokenRef = useRef(0)
 
@@ -146,6 +154,26 @@ export default function MelodyBoard() {
         <div className="flex items-center gap-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">Melody</h2>
           <ExpandToggle expanded={!collapsed} onClick={() => setCollapsed((c) => !c)} />
+          <div className="flex items-center gap-0.5 rounded-md border border-white/10 p-0.5">
+            <button
+              type="button"
+              onClick={() => setViewMode('staff')}
+              className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
+                viewMode === 'staff' ? 'bg-purple-500/20 text-purple-300' : 'text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              Staff
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('tab')}
+              className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
+                viewMode === 'tab' ? 'bg-purple-500/20 text-purple-300' : 'text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              Tab
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-4">
           <button
@@ -175,6 +203,7 @@ export default function MelodyBoard() {
               total={lines.length}
               activeInstanceId={playingItem?.lineId === line.id ? playingItem.instanceId : null}
               onPlay={() => playSequence(line.items.map((item) => ({ lineId: line.id, item })))}
+              viewMode={viewMode}
             />
           ))}
         </div>
