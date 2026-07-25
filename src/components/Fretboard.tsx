@@ -19,6 +19,7 @@ interface NotesFretboardProps {
   highlightNote?: NoteName | null
   fretCount?: number
   onNoteClick?: (note: NoteName, stringIndex: number, fret: number) => void
+  playingPosition?: { stringIndex: number; fret: number } | null
 }
 
 type FretboardProps = ChordFretboardProps | ScaleFretboardProps | NotesFretboardProps
@@ -142,12 +143,14 @@ function NeckDiagram({
   fretCount = 12,
   isVisible,
   isEmphasis,
+  isPlaying,
   ariaLabel,
   onNoteClick,
 }: {
   fretCount?: number
   isVisible: (note: NoteName) => boolean
   isEmphasis: (note: NoteName) => boolean
+  isPlaying?: (stringIndex: number, fret: number) => boolean
   ariaLabel: string
   onNoteClick?: (note: NoteName, stringIndex: number, fret: number) => void
 }) {
@@ -222,6 +225,7 @@ function NeckDiagram({
           const note = noteAtFret(STANDARD_TUNING[stringIdx], fret)
           if (!isVisible(note)) return null
           const emphasis = isEmphasis(note)
+          const playing = isPlaying?.(stringIdx, fret) ?? false
           const x = fret === 0 ? padLeft + 8 : padLeft + fretGap * (fret - 0.5)
           const y = padTop + row * stringGap
           return (
@@ -230,8 +234,22 @@ function NeckDiagram({
               onClick={onNoteClick ? () => onNoteClick(note, stringIdx, fret) : undefined}
               style={onNoteClick ? { cursor: 'pointer' } : undefined}
             >
-              <circle cx={x} cy={y} r="9.5" fill={emphasis ? '#c084fc' : '#2e303a'} stroke={emphasis ? '#c084fc' : '#6b6b78'} strokeWidth="1.5" />
-              <text x={x} y={y + 3.5} textAnchor="middle" fontSize="9" fontWeight={emphasis ? 700 : 400} fill={emphasis ? '#0f1115' : '#e8e8ec'}>
+              <circle
+                cx={x}
+                cy={y}
+                r={playing ? 12 : 9.5}
+                fill={playing ? '#fbbf24' : emphasis ? '#c084fc' : '#2e303a'}
+                stroke={playing ? '#fbbf24' : emphasis ? '#c084fc' : '#6b6b78'}
+                strokeWidth={playing ? 2.5 : 1.5}
+              />
+              <text
+                x={x}
+                y={y + 3.5}
+                textAnchor="middle"
+                fontSize="9"
+                fontWeight={playing || emphasis ? 700 : 400}
+                fill={playing || emphasis ? '#0f1115' : '#e8e8ec'}
+              >
                 {note}
               </text>
             </g>
@@ -258,12 +276,16 @@ function NotesNeck({
   highlightNote = null,
   fretCount = 12,
   onNoteClick,
+  playingPosition = null,
 }: Omit<NotesFretboardProps, 'mode'>) {
   return (
     <NeckDiagram
       fretCount={fretCount}
       isVisible={() => true}
       isEmphasis={(note) => highlightNote !== null && note === highlightNote}
+      isPlaying={(stringIndex, fret) =>
+        playingPosition !== null && playingPosition.stringIndex === stringIndex && playingPosition.fret === fret
+      }
       ariaLabel={highlightNote ? `Fretboard notes, highlighting ${highlightNote}` : 'Fretboard notes'}
       onNoteClick={onNoteClick}
     />

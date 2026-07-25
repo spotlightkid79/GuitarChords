@@ -1,12 +1,12 @@
-import { useState } from 'react'
-import { playNotes } from '../lib/audio'
+import { useRef, useState } from 'react'
+import { playNotes, type FretPosition } from '../lib/audio'
 import { ALL_ROOTS, STANDARD_TUNING, noteAtFret, type NoteName } from '../lib/music-theory'
 import Fretboard from './Fretboard'
 
 const FRET_COUNT = 12
 
 function positionsForNote(note: NoteName) {
-  const positions: { stringIndex: number; fret: number }[] = []
+  const positions: FretPosition[] = []
   STANDARD_TUNING.forEach((openNote, stringIndex) => {
     for (let fret = 0; fret <= FRET_COUNT; fret++) {
       if (noteAtFret(openNote, fret) === note) positions.push({ stringIndex, fret })
@@ -17,13 +17,21 @@ function positionsForNote(note: NoteName) {
 
 export default function NotesExplorer() {
   const [highlightNote, setHighlightNote] = useState<NoteName | null>(null)
+  const [playingPosition, setPlayingPosition] = useState<FretPosition | null>(null)
+  const playbackTokenRef = useRef(0)
 
   const toggleNote = (note: NoteName) =>
     setHighlightNote((current) => (current === note ? null : note))
 
   const handleFretboardClick = (note: NoteName) => {
     toggleNote(note)
-    playNotes(positionsForNote(note))
+    const token = ++playbackTokenRef.current
+    const totalDuration = playNotes(positionsForNote(note), (position) => {
+      if (playbackTokenRef.current === token) setPlayingPosition(position)
+    })
+    window.setTimeout(() => {
+      if (playbackTokenRef.current === token) setPlayingPosition(null)
+    }, totalDuration * 1000)
   }
 
   return (
@@ -62,11 +70,16 @@ export default function NotesExplorer() {
           {highlightNote ? `Fretboard notes — ${highlightNote} highlighted` : 'Fretboard notes'}
         </h2>
         <p className="text-xs text-zinc-500">
-          Click a note on the fretboard to select it and hear every matching note ring together — click it again to
-          clear.
+          Click a note on the fretboard to select it and hear every matching note play one by one — click it again
+          to clear.
         </p>
         <div className="w-full overflow-x-auto rounded-lg border border-white/10 bg-white/5 p-3">
-          <Fretboard mode="notes" highlightNote={highlightNote} onNoteClick={handleFretboardClick} />
+          <Fretboard
+            mode="notes"
+            highlightNote={highlightNote}
+            onNoteClick={handleFretboardClick}
+            playingPosition={playingPosition}
+          />
         </div>
       </div>
     </div>

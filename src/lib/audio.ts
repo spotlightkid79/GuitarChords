@@ -106,18 +106,25 @@ export interface FretPosition {
   fret: number
 }
 
-/** Plays every given fretboard position one at a time, low to high. Returns the total playback duration in seconds. */
-export function playNotes(positions: FretPosition[]): number {
+/**
+ * Plays every given fretboard position one at a time, low to high.
+ * `onNoteStart`, if given, fires (via setTimeout, so it's approximate but good enough for UI highlighting)
+ * right as each note begins. Returns the total playback duration in seconds.
+ */
+export function playNotes(positions: FretPosition[], onNoteStart?: (position: FretPosition, index: number) => void): number {
   if (positions.length === 0) return 0
   const ctx = getAudioContext()
+  const sorted = [...positions].sort(
+    (a, b) => midiForOpenString(a.stringIndex) + a.fret - (midiForOpenString(b.stringIndex) + b.fret),
+  )
   void ensureRunning(ctx).then(() => {
-    const sorted = [...positions].sort(
-      (a, b) => midiForOpenString(a.stringIndex) + a.fret - (midiForOpenString(b.stringIndex) + b.fret),
-    )
     let time = ctx.currentTime + SCHEDULE_LEAD_IN
-    sorted.forEach(({ stringIndex, fret }) => {
-      const freq = midiToFrequency(midiForOpenString(stringIndex) + fret)
+    sorted.forEach((position, i) => {
+      const freq = midiToFrequency(midiForOpenString(position.stringIndex) + position.fret)
       scheduleNote(ctx, freq, time, NOTE_DURATION)
+      if (onNoteStart) {
+        setTimeout(() => onNoteStart(position, i), (SCHEDULE_LEAD_IN + i * NOTE_DURATION) * 1000)
+      }
       time += NOTE_DURATION
     })
   })
