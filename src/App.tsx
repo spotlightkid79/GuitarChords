@@ -6,7 +6,10 @@ import ScaleLibrary from './components/ScaleLibrary'
 import NotesExplorer from './components/NotesExplorer'
 import SongsLibrary from './components/SongsLibrary'
 import ProgressionBoard from './components/ProgressionBoard'
+import MelodyBoard from './components/MelodyBoard'
 import { useProgressionStore, type BoardLine } from './store/progressionStore'
+import { useMelodyStore, type MelodyLine } from './store/melodyStore'
+import type { NoteName } from './lib/music-theory'
 
 function locateItem(lines: BoardLine[], instanceId: string) {
   for (const line of lines) {
@@ -25,11 +28,28 @@ function resolveDropTarget(lines: BoardLine[], overId: string) {
   return locateItem(lines, overId)
 }
 
+function locateMelodyItem(lines: MelodyLine[], instanceId: string) {
+  for (const line of lines) {
+    const index = line.items.findIndex((i) => i.instanceId === instanceId)
+    if (index !== -1) return { lineId: line.id, index }
+  }
+  return null
+}
+
+function resolveMelodyDropTarget(lines: MelodyLine[], overId: string) {
+  if (overId.startsWith('melody-line:')) {
+    const lineId = overId.slice('melody-line:'.length)
+    const line = lines.find((l) => l.id === lineId)
+    return line ? { lineId, index: line.items.length } : null
+  }
+  return locateMelodyItem(lines, overId)
+}
+
 export default function App() {
   const [tab, setTab] = useState<Tab>('chords')
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
 
-  function handleDragEnd(event: DragEndEvent) {
+  function handleChordDragEnd(event: DragEndEvent) {
     const { active, over } = event
     if (!over) return
     const activeId = String(active.id)
@@ -57,6 +77,42 @@ export default function App() {
     }
   }
 
+  function handleMelodyDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over) return
+    const activeId = String(active.id)
+    const overId = String(over.id)
+    const { lines, addNote, reorderInLine, moveItemToLine } = useMelodyStore.getState()
+
+    const target = resolveMelodyDropTarget(lines, overId)
+    if (!target) return
+
+    if (activeId.startsWith('note:')) {
+      const data = active.data.current as { note: NoteName; stringIndex: number; fret: number } | undefined
+      if (!data) return
+      addNote(target.lineId, { note: data.note, stringIndex: data.stringIndex, fret: data.fret }, target.index)
+      return
+    }
+
+    const source = locateMelodyItem(lines, activeId)
+    if (!source) return
+
+    if (source.lineId === target.lineId) {
+      if (source.index === target.index) return
+      reorderInLine(source.lineId, source.index, target.index)
+    } else {
+      moveItemToLine(source.lineId, target.lineId, activeId, target.index)
+    }
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    if (tab === 'notes') {
+      handleMelodyDragEnd(event)
+    } else {
+      handleChordDragEnd(event)
+    }
+  }
+
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
       <div className="flex h-full flex-col">
@@ -67,7 +123,8 @@ export default function App() {
           {tab === 'notes' && <NotesExplorer />}
           {tab === 'songs' && <SongsLibrary />}
         </main>
-        {tab !== 'songs' && <ProgressionBoard />}
+        {(tab === 'chords' || tab === 'scales') && <ProgressionBoard />}
+        {tab === 'notes' && <MelodyBoard />}
       </div>
     </DndContext>
   )

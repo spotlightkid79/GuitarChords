@@ -1,6 +1,12 @@
+import { useDraggable } from '@dnd-kit/core'
+import type { Ref } from 'react'
 import type { ChordShape } from '../data/chords'
 import type { ScaleType } from '../data/scales'
 import { STANDARD_TUNING, noteAtFret, type NoteName } from '../lib/music-theory'
+
+export function noteDragId(stringIndex: number, fret: number) {
+  return `note:${stringIndex}:${fret}`
+}
 
 interface ChordFretboardProps {
   mode: 'chord'
@@ -139,6 +145,72 @@ function ChordDiagram({ chord }: { chord: ChordShape }) {
   )
 }
 
+function NoteDot({
+  x,
+  y,
+  note,
+  stringIndex,
+  fret,
+  emphasis,
+  playing,
+  dotRadius,
+  fontSize,
+  onNoteClick,
+  draggable,
+}: {
+  x: number
+  y: number
+  note: NoteName
+  stringIndex: number
+  fret: number
+  emphasis: boolean
+  playing: boolean
+  dotRadius: number
+  fontSize: number
+  onNoteClick?: (note: NoteName, stringIndex: number, fret: number) => void
+  draggable: boolean
+}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: noteDragId(stringIndex, fret),
+    data: { note, stringIndex, fret },
+    disabled: !draggable,
+  })
+
+  return (
+    <g
+      ref={draggable ? (setNodeRef as unknown as Ref<SVGGElement>) : undefined}
+      onClick={onNoteClick ? () => onNoteClick(note, stringIndex, fret) : undefined}
+      style={{
+        cursor: draggable ? 'grab' : onNoteClick ? 'pointer' : undefined,
+        opacity: isDragging ? 0.35 : 1,
+        transform: transform ? `translate(${transform.x}px, ${transform.y}px)` : undefined,
+        touchAction: draggable ? 'none' : undefined,
+      }}
+      {...(draggable ? listeners : undefined)}
+      {...(draggable ? attributes : undefined)}
+    >
+      <circle
+        cx={x}
+        cy={y}
+        r={playing ? dotRadius * 1.26 : dotRadius}
+        fill={playing ? '#fbbf24' : emphasis ? '#c084fc' : '#2e303a'}
+        stroke={playing ? '#fbbf24' : emphasis ? '#c084fc' : '#6b6b78'}
+        strokeWidth={playing ? 2.5 : 1.5}
+      />
+      <text
+        x={x}
+        y={y + fontSize * 0.4}
+        textAnchor="middle"
+        fontSize={fontSize}
+        fontWeight={playing || emphasis ? 700 : 400}
+        fill={playing || emphasis ? '#0f1115' : '#e8e8ec'}
+      >
+        {note}
+      </text>
+    </g>
+  )
+}
+
 function NeckDiagram({
   fretCount = 12,
   isVisible,
@@ -151,6 +223,7 @@ function NeckDiagram({
   dotRadius = 9.5,
   fontSize = 9,
   height = 190,
+  draggableNotes = false,
 }: {
   fretCount?: number
   isVisible: (note: NoteName) => boolean
@@ -163,6 +236,7 @@ function NeckDiagram({
   dotRadius?: number
   fontSize?: number
   height?: number
+  draggableNotes?: boolean
 }) {
   const width = Math.max(minWidth, fretCount * widthPerFret)
   const padLeft = 28
@@ -238,30 +312,20 @@ function NeckDiagram({
           const x = fret === 0 ? padLeft + 8 : padLeft + fretGap * (fret - 0.5)
           const y = padTop + row * stringGap
           return (
-            <g
+            <NoteDot
               key={`${row}-${fret}`}
-              onClick={onNoteClick ? () => onNoteClick(note, stringIdx, fret) : undefined}
-              style={onNoteClick ? { cursor: 'pointer' } : undefined}
-            >
-              <circle
-                cx={x}
-                cy={y}
-                r={playing ? dotRadius * 1.26 : dotRadius}
-                fill={playing ? '#fbbf24' : emphasis ? '#c084fc' : '#2e303a'}
-                stroke={playing ? '#fbbf24' : emphasis ? '#c084fc' : '#6b6b78'}
-                strokeWidth={playing ? 2.5 : 1.5}
-              />
-              <text
-                x={x}
-                y={y + fontSize * 0.4}
-                textAnchor="middle"
-                fontSize={fontSize}
-                fontWeight={playing || emphasis ? 700 : 400}
-                fill={playing || emphasis ? '#0f1115' : '#e8e8ec'}
-              >
-                {note}
-              </text>
-            </g>
+              x={x}
+              y={y}
+              note={note}
+              stringIndex={stringIdx}
+              fret={fret}
+              emphasis={emphasis}
+              playing={playing}
+              dotRadius={dotRadius}
+              fontSize={fontSize}
+              onNoteClick={onNoteClick}
+              draggable={draggableNotes}
+            />
           )
         }),
       )}
@@ -302,6 +366,7 @@ function NotesNeck({
       dotRadius={13.5}
       fontSize={12}
       height={225}
+      draggableNotes
     />
   )
 }
