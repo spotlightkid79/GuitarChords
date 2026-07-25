@@ -6,7 +6,7 @@ const STRING_OCTAVE = [2, 2, 3, 3, 3, 4]
 
 const STRUM_DELAY = 0.07
 const CHORD_DURATION = 2.2
-const NOTE_DURATION = 1.4
+const NOTE_DURATION = 0.9
 // Small lead-in so the first scheduled note is safely in the future by the time the
 // audio thread processes it — scheduling exactly at currentTime gets silently dropped
 // on some browsers (notably Safari).
@@ -106,18 +106,20 @@ export interface FretPosition {
   fret: number
 }
 
-/** Plays every given fretboard position together as a quick low-to-high strum. */
-export function playNotes(positions: FretPosition[]) {
-  if (positions.length === 0) return
+/** Plays every given fretboard position one at a time, low to high. Returns the total playback duration in seconds. */
+export function playNotes(positions: FretPosition[]): number {
+  if (positions.length === 0) return 0
   const ctx = getAudioContext()
   void ensureRunning(ctx).then(() => {
     const sorted = [...positions].sort(
       (a, b) => midiForOpenString(a.stringIndex) + a.fret - (midiForOpenString(b.stringIndex) + b.fret),
     )
-    const startTime = ctx.currentTime + SCHEDULE_LEAD_IN
-    sorted.forEach(({ stringIndex, fret }, i) => {
+    let time = ctx.currentTime + SCHEDULE_LEAD_IN
+    sorted.forEach(({ stringIndex, fret }) => {
       const freq = midiToFrequency(midiForOpenString(stringIndex) + fret)
-      scheduleNote(ctx, freq, startTime + i * STRUM_DELAY, NOTE_DURATION)
+      scheduleNote(ctx, freq, time, NOTE_DURATION)
+      time += NOTE_DURATION
     })
   })
+  return positions.length * NOTE_DURATION
 }
