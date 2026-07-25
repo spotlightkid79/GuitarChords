@@ -1,6 +1,27 @@
-# React + TypeScript + Vite
+# Guitar Reference
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A guitar chords, scales, tablature, and lyrics reference app built with React, TypeScript, and Vite.
+
+## Getting Started
+
+Install dependencies and start the local dev server:
+
+```bash
+npm install
+npm run dev
+```
+
+Then open the URL printed in the terminal — by default [http://localhost:5173](http://localhost:5173).
+
+Other scripts:
+
+- `npm run build` — type-check and build for production
+- `npm run preview` — preview the production build locally
+- `npm run lint` — run Oxlint
+
+## Vite template notes
+
+This project was scaffolded from Vite's React + TypeScript template, which provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
 Currently, two official plugins are available:
 
