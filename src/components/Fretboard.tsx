@@ -1,5 +1,5 @@
 import { useDraggable } from '@dnd-kit/core'
-import type { Ref } from 'react'
+import type { CSSProperties, Ref } from 'react'
 import type { ChordShape } from '../data/chords'
 import type { ScaleType } from '../data/scales'
 import { STANDARD_TUNING, noteAtFret, type NoteName } from '../lib/music-theory'
@@ -185,7 +185,12 @@ function NoteDot({
         opacity: isDragging ? 0.35 : 1,
         transform: transform ? `translate(${transform.x}px, ${transform.y}px)` : undefined,
         touchAction: draggable ? 'none' : undefined,
-      }}
+        userSelect: draggable ? 'none' : undefined,
+        // Safari treats SVG shapes as natively "draggable" (like an image) and hijacks the
+        // gesture into its own drag-out instead of dispatching the pointermove events dnd-kit
+        // needs, so a drag silently does nothing. This WebKit-only property turns that off.
+        WebkitUserDrag: draggable ? 'none' : undefined,
+      } as CSSProperties}
       {...(draggable ? listeners : undefined)}
       {...(draggable ? attributes : undefined)}
     >
@@ -253,7 +258,14 @@ function NeckDiagram({
   const rowToStringIndex = (row: number) => STRING_COUNT - 1 - row
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} role="img" aria-label={ariaLabel}>
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      width={width}
+      height={height}
+      role="img"
+      aria-label={ariaLabel}
+      style={draggableNotes ? ({ WebkitUserDrag: 'none' } as CSSProperties) : undefined}
+    >
       {/* fretboard background */}
       <rect x={padLeft} y={padTop} width={gridW} height={gridH} fill="#1a1b22" rx="4" />
 
