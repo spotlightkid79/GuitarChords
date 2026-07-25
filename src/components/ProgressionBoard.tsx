@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 import { CHORDS, type ChordShape } from '../data/chords'
 import { playChordSequence } from '../lib/audio'
 import { downloadAllSongs, downloadSong, parseSongFile } from '../lib/songFile'
+import { useScrollPlayingIntoView } from '../lib/useScrollPlayingIntoView'
 import { useProgressionStore, type BoardItem, type BoardLine } from '../store/progressionStore'
 import { useSongsStore } from '../store/songsStore'
 import { BoardChordCard } from './ChordCard'
@@ -271,6 +272,7 @@ export default function ProgressionBoard() {
   const [collapsed, setCollapsed] = useState(false)
   const [playingInstanceId, setPlayingInstanceId] = useState<string | null>(null)
   const playbackTokenRef = useRef(0)
+  useScrollPlayingIntoView(playingInstanceId)
 
   const allItems = lines.flatMap((l) => l.items)
 

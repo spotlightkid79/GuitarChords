@@ -66,6 +66,7 @@ export function BoardChordCard({
   return (
     <div
       ref={setNodeRef}
+      data-instance-id={instanceId}
       style={{ transform: CSS.Translate.toString(transform), transition }}
       className={`relative touch-none ${isDragging ? 'opacity-40' : ''}`}
     >

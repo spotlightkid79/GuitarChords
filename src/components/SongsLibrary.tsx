@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { CHORDS, type ChordShape } from '../data/chords'
 import { playChord, playChordSequence } from '../lib/audio'
 import { downloadSong } from '../lib/songFile'
+import { useScrollPlayingIntoView } from '../lib/useScrollPlayingIntoView'
 import { useSongsStore, type SavedSong } from '../store/songsStore'
 import type { BoardItem } from '../store/progressionStore'
 import { CardBody } from './ChordCard'
@@ -31,6 +32,7 @@ function SongCard({
   const [draftName, setDraftName] = useState(song.name)
   const [playingInstanceId, setPlayingInstanceId] = useState<string | null>(null)
   const playbackTokenRef = useRef(0)
+  useScrollPlayingIntoView(playingInstanceId)
   const isActive = activeSongId === song.id
   const chordCount = countChords(song)
   const preview = song.lines.flatMap((l) => l.items)
@@ -138,6 +140,7 @@ function SongCard({
             return chord ? (
               <span
                 key={item.instanceId}
+                data-instance-id={item.instanceId}
                 className={`rounded px-1.5 py-0.5 text-[10px] transition-colors ${
                   playing ? 'bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/60' : 'bg-white/10 text-zinc-300'
                 }`}
@@ -162,7 +165,13 @@ function SongCard({
                   {line.items.map((item) => {
                     const chord = chordById.get(item.chordId)
                     return chord ? (
-                      <button key={item.instanceId} type="button" onClick={() => playChord(chord)} className="text-left">
+                      <button
+                        key={item.instanceId}
+                        type="button"
+                        data-instance-id={item.instanceId}
+                        onClick={() => playChord(chord)}
+                        className="text-left"
+                      >
                         <CardBody chord={chord} playing={item.instanceId === playingInstanceId} />
                       </button>
                     ) : null
