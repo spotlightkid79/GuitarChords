@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { CHORDS, type ChordShape } from '../data/chords'
-import { playChord, playChordSequence, type ChordSequenceHandle } from '../lib/audio'
+import { DEFAULT_CHORD_DURATION, playChord, playChordSequence, type ChordSequenceHandle } from '../lib/audio'
 import { downloadSong } from '../lib/songFile'
 import { useScrollPlayingIntoView } from '../lib/useScrollPlayingIntoView'
 import { useSongsStore, type SavedSong } from '../store/songsStore'
@@ -41,6 +41,7 @@ function SongCard({
   const [playingInstanceId, setPlayingInstanceId] = useState<string | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [loopSetting, setLoopSetting] = useState('1')
+  const [speed, setSpeed] = useState(1)
   const playbackTokenRef = useRef(0)
   const playbackHandleRef = useRef<ChordSequenceHandle | null>(null)
   useScrollPlayingIntoView(playingInstanceId)
@@ -74,13 +75,14 @@ function SongCard({
     const token = ++playbackTokenRef.current
     const loop = loopSetting === 'infinite'
     const repeatCount = Number(loopSetting) || 1
+    const chordDuration = DEFAULT_CHORD_DURATION / speed
     const handle = playChordSequence(
       withChords.map((x) => x.chord),
       (_chord, i) => {
         if (playbackTokenRef.current !== token) return
         setPlayingInstanceId(withChords[i].item.instanceId)
       },
-      loop ? { loop: true } : { repeatCount },
+      loop ? { loop: true, chordDuration } : { repeatCount, chordDuration },
     )
     playbackHandleRef.current = handle
     setIsPlaying(true)
@@ -182,6 +184,19 @@ function SongCard({
             </option>
           ))}
         </select>
+        <div className="flex items-center gap-1" title="Playback speed">
+          <input
+            type="range"
+            min="0.5"
+            max="3"
+            step="0.25"
+            value={speed}
+            onChange={(e) => setSpeed(Number(e.target.value))}
+            disabled={isPlaying}
+            className="h-1 w-14 accent-purple-400 disabled:opacity-50"
+          />
+          <span className="w-8 text-[10px] text-zinc-500">{speed.toFixed(2)}x</span>
+        </div>
       </div>
 
       <div className="text-xs text-zinc-500">
