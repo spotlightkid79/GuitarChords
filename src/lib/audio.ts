@@ -67,17 +67,17 @@ function scheduleChord(
   ctx: AudioContext,
   chord: ChordShape,
   startTime: number,
-  duration: number = DEFAULT_CHORD_DURATION,
+  noteDuration: number = DEFAULT_CHORD_DURATION,
 ): OscillatorNode[] {
-  // Scale the strum spread with the chord duration too, so a fast tempo doesn't end up strumming
-  // longer than the chord's own time slot.
-  const strumDelay = STRUM_DELAY * (duration / DEFAULT_CHORD_DURATION)
+  // Scale the strum spread with the note duration too, so a very short ring doesn't end up
+  // strumming longer than the notes themselves last.
+  const strumDelay = STRUM_DELAY * (noteDuration / DEFAULT_CHORD_DURATION)
   const oscillators: OscillatorNode[] = []
   let stringsPlayed = 0
   chord.frets.forEach((fret, stringIndex) => {
     if (typeof fret !== 'number') return
     const freq = midiToFrequency(midiAtFret(stringIndex, fret))
-    oscillators.push(scheduleNote(ctx, freq, startTime + stringsPlayed * strumDelay, duration))
+    oscillators.push(scheduleNote(ctx, freq, startTime + stringsPlayed * strumDelay, noteDuration))
     stringsPlayed += 1
   })
   return oscillators
@@ -114,15 +114,19 @@ export interface ChordSequenceHandle {
  * `onChordStart`, if given, fires (via setTimeout, so it's approximate but good enough for UI
  * highlighting) right as each chord begins.
  * By default plays once through at DEFAULT_CHORD_DURATION per chord. Pass `{ repeatCount: N }` to
- * repeat N times, `{ loop: true }` to repeat indefinitely until `stop()` is called, and/or
- * `{ chordDuration }` to speed up or slow down the transition between chords.
+ * repeat N times, `{ loop: true }` to repeat indefinitely until `stop()` is called, `{ chordDuration }`
+ * to speed up or slow down the transition between chords, and/or `{ sustain }` (a multiplier on
+ * chordDuration, default 1) to stretch out or shorten how long each chord actually rings —
+ * independent of the tempo, so a sustain above 1 lets a chord's sound bleed into the next one
+ * (a legato/pad feel) without changing how fast the chords change.
  */
 export function playChordSequence(
   chords: ChordShape[],
   onChordStart?: (chord: ChordShape, index: number) => void,
-  options?: { loop?: boolean; repeatCount?: number; chordDuration?: number },
+  options?: { loop?: boolean; repeatCount?: number; chordDuration?: number; sustain?: number },
 ): ChordSequenceHandle {
   const chordDuration = options?.chordDuration ?? DEFAULT_CHORD_DURATION
+  const noteDuration = chordDuration * (options?.sustain ?? 1)
   const loopDuration = chords.length * chordDuration
   if (chords.length === 0) return { loopDuration, stop: () => {} }
 
@@ -139,7 +143,7 @@ export function playChordSequence(
       if (stopped) return
       let time = ctx.currentTime + SCHEDULE_LEAD_IN
       chords.forEach((chord, i) => {
-        activeOscillators.push(...scheduleChord(ctx, chord, time, chordDuration))
+        activeOscillators.push(...scheduleChord(ctx, chord, time, noteDuration))
         if (onChordStart) {
           const id = window.setTimeout(
             () => {
