@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { CHORDS, type ChordShape } from '../data/chords'
 import { playChord, playChordSequence } from '../lib/audio'
 import { downloadSong } from '../lib/songFile'
 import { useSongsStore, type SavedSong } from '../store/songsStore'
+import type { BoardItem } from '../store/progressionStore'
 import { CardBody } from './ChordCard'
 import ExpandToggle from './ExpandToggle'
 
@@ -28,6 +29,8 @@ function SongCard({
   const { activeSongId, deleteSong, renameSong } = useSongsStore()
   const [editing, setEditing] = useState(false)
   const [draftName, setDraftName] = useState(song.name)
+  const [playingInstanceId, setPlayingInstanceId] = useState<string | null>(null)
+  const playbackTokenRef = useRef(0)
   const isActive = activeSongId === song.id
   const chordCount = countChords(song)
   const preview = song.lines.flatMap((l) => l.items)
@@ -38,8 +41,21 @@ function SongCard({
   }
 
   function handlePlay() {
-    const chords = preview.map((i) => chordById.get(i.chordId)).filter((c): c is ChordShape => !!c)
-    playChordSequence(chords)
+    const withChords = preview
+      .map((item) => ({ item, chord: chordById.get(item.chordId) }))
+      .filter((x): x is { item: BoardItem; chord: ChordShape } => !!x.chord)
+    if (withChords.length === 0) return
+    const token = ++playbackTokenRef.current
+    const totalDuration = playChordSequence(
+      withChords.map((x) => x.chord),
+      (_chord, i) => {
+        if (playbackTokenRef.current !== token) return
+        setPlayingInstanceId(withChords[i].item.instanceId)
+      },
+    )
+    window.setTimeout(() => {
+      if (playbackTokenRef.current === token) setPlayingInstanceId(null)
+    }, totalDuration * 1000)
   }
 
   return (
@@ -118,8 +134,14 @@ function SongCard({
         <div className="flex flex-wrap gap-1">
           {preview.slice(0, 8).map((item) => {
             const chord = chordById.get(item.chordId)
+            const playing = item.instanceId === playingInstanceId
             return chord ? (
-              <span key={item.instanceId} className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-zinc-300">
+              <span
+                key={item.instanceId}
+                className={`rounded px-1.5 py-0.5 text-[10px] transition-colors ${
+                  playing ? 'bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/60' : 'bg-white/10 text-zinc-300'
+                }`}
+              >
                 {chord.label}
               </span>
             ) : null
@@ -141,7 +163,7 @@ function SongCard({
                     const chord = chordById.get(item.chordId)
                     return chord ? (
                       <button key={item.instanceId} type="button" onClick={() => playChord(chord)} className="text-left">
-                        <CardBody chord={chord} />
+                        <CardBody chord={chord} playing={item.instanceId === playingInstanceId} />
                       </button>
                     ) : null
                   })}
