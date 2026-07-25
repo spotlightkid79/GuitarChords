@@ -4,7 +4,7 @@ import { useRef, useState } from 'react'
 import { CHORDS, type ChordShape } from '../data/chords'
 import { playChordSequence } from '../lib/audio'
 import { downloadAllSongs, downloadSong, parseSongFile } from '../lib/songFile'
-import { useProgressionStore, type BoardLine } from '../store/progressionStore'
+import { useProgressionStore, type BoardItem, type BoardLine } from '../store/progressionStore'
 import { useSongsStore } from '../store/songsStore'
 import { BoardChordCard } from './ChordCard'
 import ExpandToggle from './ExpandToggle'
@@ -15,16 +15,23 @@ export function lineDroppableId(lineId: string) {
   return `line:${lineId}`
 }
 
-function ProgressionLineRow({ line, index, total }: { line: BoardLine; index: number; total: number }) {
+function ProgressionLineRow({
+  line,
+  index,
+  total,
+  playingInstanceId,
+  onPlay,
+}: {
+  line: BoardLine
+  index: number
+  total: number
+  playingInstanceId: string | null
+  onPlay: () => void
+}) {
   const { removeItem, removeLine, renameLine, moveLine } = useProgressionStore()
   const { setNodeRef, isOver } = useDroppable({ id: lineDroppableId(line.id) })
   const [editing, setEditing] = useState(false)
   const [draftName, setDraftName] = useState(line.name)
-
-  function handlePlay() {
-    const chords = line.items.map((i) => chordById.get(i.chordId)).filter((c): c is ChordShape => !!c)
-    playChordSequence(chords)
-  }
 
   return (
     <div className="flex items-start gap-3">
@@ -61,7 +68,7 @@ function ProgressionLineRow({ line, index, total }: { line: BoardLine; index: nu
           <button
             type="button"
             disabled={line.items.length === 0}
-            onClick={handlePlay}
+            onClick={onPlay}
             className="hover:text-purple-300 disabled:opacity-30"
             aria-label="Play line"
             title="Play line"
@@ -112,6 +119,7 @@ function ProgressionLineRow({ line, index, total }: { line: BoardLine; index: nu
                   instanceId={item.instanceId}
                   chord={chord}
                   onRemove={() => removeItem(line.id, item.instanceId)}
+                  playing={item.instanceId === playingInstanceId}
                 />
               )
             })}
@@ -261,11 +269,28 @@ export default function ProgressionBoard() {
   const { lines, addLine, clearAll } = useProgressionStore()
   const activeSongId = useSongsStore((s) => s.activeSongId)
   const [collapsed, setCollapsed] = useState(false)
+  const [playingInstanceId, setPlayingInstanceId] = useState<string | null>(null)
+  const playbackTokenRef = useRef(0)
 
-  const allChords = lines
-    .flatMap((l) => l.items)
-    .map((i) => chordById.get(i.chordId))
-    .filter((c): c is ChordShape => !!c)
+  const allItems = lines.flatMap((l) => l.items)
+
+  function playSequence(items: BoardItem[]) {
+    const withChords = items
+      .map((item) => ({ item, chord: chordById.get(item.chordId) }))
+      .filter((x): x is { item: BoardItem; chord: ChordShape } => !!x.chord)
+    if (withChords.length === 0) return
+    const token = ++playbackTokenRef.current
+    const totalDuration = playChordSequence(
+      withChords.map((x) => x.chord),
+      (_chord, i) => {
+        if (playbackTokenRef.current !== token) return
+        setPlayingInstanceId(withChords[i].item.instanceId)
+      },
+    )
+    window.setTimeout(() => {
+      if (playbackTokenRef.current === token) setPlayingInstanceId(null)
+    }, totalDuration * 1000)
+  }
 
   return (
     <div className="border-t border-white/10 bg-[#14151b]">
@@ -277,8 +302,8 @@ export default function ProgressionBoard() {
         <div className="flex items-center gap-4">
           <button
             type="button"
-            disabled={allChords.length === 0}
-            onClick={() => playChordSequence(allChords)}
+            disabled={allItems.length === 0}
+            onClick={() => playSequence(allItems)}
             className="text-xs font-medium text-purple-300 hover:text-purple-200 disabled:opacity-30"
           >
             ▶ Play song
@@ -297,7 +322,14 @@ export default function ProgressionBoard() {
       {!collapsed && (
         <div className="mx-auto flex max-h-96 max-w-6xl flex-col gap-3 overflow-y-auto p-4">
           {lines.map((line, i) => (
-            <ProgressionLineRow key={line.id} line={line} index={i} total={lines.length} />
+            <ProgressionLineRow
+              key={line.id}
+              line={line}
+              index={i}
+              total={lines.length}
+              playingInstanceId={playingInstanceId}
+              onPlay={() => playSequence(line.items)}
+            />
           ))}
         </div>
       )}

@@ -80,14 +80,21 @@ export function playChord(chord: ChordShape) {
   })
 }
 
-/** Plays a list of chords back to back. Returns the total playback duration in seconds. */
-export function playChordSequence(chords: ChordShape[]): number {
+/**
+ * Plays a list of chords back to back.
+ * `onChordStart`, if given, fires (via setTimeout, so it's approximate but good enough for UI
+ * highlighting) right as each chord begins. Returns the total playback duration in seconds.
+ */
+export function playChordSequence(chords: ChordShape[], onChordStart?: (chord: ChordShape, index: number) => void): number {
   if (chords.length === 0) return 0
   const ctx = getAudioContext()
   void ensureRunning(ctx).then(() => {
     let time = ctx.currentTime + SCHEDULE_LEAD_IN
-    chords.forEach((chord) => {
+    chords.forEach((chord, i) => {
       scheduleChord(ctx, chord, time)
+      if (onChordStart) {
+        setTimeout(() => onChordStart(chord, i), (SCHEDULE_LEAD_IN + i * CHORD_DURATION) * 1000)
+      }
       time += CHORD_DURATION
     })
   })

@@ -5,13 +5,17 @@ import { VOICING_LABEL, type ChordShape } from '../data/chords'
 import { playChord } from '../lib/audio'
 import Fretboard from './Fretboard'
 
-export function CardBody({ chord }: { chord: ChordShape }) {
+export function CardBody({ chord, playing = false }: { chord: ChordShape; playing?: boolean }) {
   return (
-    <div className="flex w-32 flex-col items-center gap-1 rounded-lg border border-white/10 bg-white/5 p-2">
+    <div
+      className={`flex w-32 flex-col items-center gap-1 rounded-lg border p-2 transition-colors ${
+        playing ? 'border-amber-400 bg-amber-400/10' : 'border-white/10 bg-white/5'
+      }`}
+    >
       <div className="h-32 w-full">
         <Fretboard mode="chord" chord={chord} />
       </div>
-      <div className="text-sm font-semibold text-zinc-100">{chord.label}</div>
+      <div className={`text-sm font-semibold ${playing ? 'text-amber-300' : 'text-zinc-100'}`}>{chord.label}</div>
       <div className="text-[11px] text-zinc-400">{chord.qualityName}</div>
       {chord.voicing !== 'open' && (
         <div className="text-[10px] text-purple-300/70">{VOICING_LABEL[chord.voicing]}</div>
@@ -47,10 +51,12 @@ export function BoardChordCard({
   instanceId,
   chord,
   onRemove,
+  playing = false,
 }: {
   instanceId: string
   chord: ChordShape
   onRemove: () => void
+  playing?: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: instanceId,
@@ -78,7 +84,7 @@ export function BoardChordCard({
         {...listeners}
         {...attributes}
       >
-        <CardBody chord={chord} />
+        <CardBody chord={chord} playing={playing} />
       </button>
     </div>
   )
