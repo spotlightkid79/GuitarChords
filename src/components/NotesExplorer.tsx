@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { playNote } from '../lib/audio'
 import { ALL_ROOTS, type NoteName } from '../lib/music-theory'
 import Fretboard from './Fretboard'
 
@@ -7,6 +8,11 @@ export default function NotesExplorer() {
 
   const toggleNote = (note: NoteName) =>
     setHighlightNote((current) => (current === note ? null : note))
+
+  const handleFretboardClick = (note: NoteName, stringIndex: number, fret: number) => {
+    toggleNote(note)
+    playNote(stringIndex, fret)
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -45,7 +51,7 @@ export default function NotesExplorer() {
         </h2>
         <p className="text-xs text-zinc-500">Click a note on the fretboard to select it, or click it again to clear.</p>
         <div className="w-full overflow-x-auto rounded-lg border border-white/10 bg-white/5 p-3">
-          <Fretboard mode="notes" highlightNote={highlightNote} onNoteClick={toggleNote} />
+          <Fretboard mode="notes" highlightNote={highlightNote} onNoteClick={handleFretboardClick} />
         </div>
       </div>
     </div>

@@ -18,7 +18,7 @@ interface NotesFretboardProps {
   mode: 'notes'
   highlightNote?: NoteName | null
   fretCount?: number
-  onNoteClick?: (note: NoteName) => void
+  onNoteClick?: (note: NoteName, stringIndex: number, fret: number) => void
 }
 
 type FretboardProps = ChordFretboardProps | ScaleFretboardProps | NotesFretboardProps
@@ -149,7 +149,7 @@ function NeckDiagram({
   isVisible: (note: NoteName) => boolean
   isEmphasis: (note: NoteName) => boolean
   ariaLabel: string
-  onNoteClick?: (note: NoteName) => void
+  onNoteClick?: (note: NoteName, stringIndex: number, fret: number) => void
 }) {
   const width = Math.max(640, fretCount * 52)
   const height = 190
@@ -227,7 +227,7 @@ function NeckDiagram({
           return (
             <g
               key={`${row}-${fret}`}
-              onClick={onNoteClick ? () => onNoteClick(note) : undefined}
+              onClick={onNoteClick ? () => onNoteClick(note, stringIdx, fret) : undefined}
               style={onNoteClick ? { cursor: 'pointer' } : undefined}
             >
               <circle cx={x} cy={y} r="9.5" fill={emphasis ? '#c084fc' : '#2e303a'} stroke={emphasis ? '#c084fc' : '#6b6b78'} strokeWidth="1.5" />

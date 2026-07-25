@@ -6,6 +6,7 @@ const STRING_OCTAVE = [2, 2, 3, 3, 3, 4]
 
 const STRUM_DELAY = 0.07
 const CHORD_DURATION = 2.2
+const NOTE_DURATION = 1.4
 // Small lead-in so the first scheduled note is safely in the future by the time the
 // audio thread processes it — scheduling exactly at currentTime gets silently dropped
 // on some browsers (notably Safari).
@@ -51,28 +52,30 @@ async function ensureRunning(ctx: AudioContext) {
   }
 }
 
+function scheduleNote(ctx: AudioContext, freq: number, startTime: number, duration: number) {
+  const osc = ctx.createOscillator()
+  osc.type = 'triangle'
+  osc.frequency.value = freq
+
+  const gain = ctx.createGain()
+  gain.gain.setValueAtTime(0, startTime)
+  gain.gain.linearRampToValueAtTime(0.22, startTime + 0.015)
+  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration)
+
+  osc.connect(gain)
+  gain.connect(ctx.destination)
+
+  osc.start(startTime)
+  osc.stop(startTime + duration + 0.05)
+}
+
 function scheduleChord(ctx: AudioContext, chord: ChordShape, startTime: number) {
   let stringsPlayed = 0
   chord.frets.forEach((fret, stringIndex) => {
     if (typeof fret !== 'number') return
     const freq = midiToFrequency(midiForOpenString(stringIndex) + fret)
-    const noteStart = startTime + stringsPlayed * STRUM_DELAY
+    scheduleNote(ctx, freq, startTime + stringsPlayed * STRUM_DELAY, CHORD_DURATION)
     stringsPlayed += 1
-
-    const osc = ctx.createOscillator()
-    osc.type = 'triangle'
-    osc.frequency.value = freq
-
-    const gain = ctx.createGain()
-    gain.gain.setValueAtTime(0, noteStart)
-    gain.gain.linearRampToValueAtTime(0.22, noteStart + 0.015)
-    gain.gain.exponentialRampToValueAtTime(0.0001, noteStart + CHORD_DURATION)
-
-    osc.connect(gain)
-    gain.connect(ctx.destination)
-
-    osc.start(noteStart)
-    osc.stop(noteStart + CHORD_DURATION + 0.05)
   })
 }
 
@@ -96,4 +99,13 @@ export function playChordSequence(chords: ChordShape[]): number {
     })
   })
   return chords.length * CHORD_DURATION
+}
+
+/** Plays a single open/fretted note on one string, e.g. from the Notes tab fretboard. */
+export function playNote(stringIndex: number, fret: number) {
+  const ctx = getAudioContext()
+  void ensureRunning(ctx).then(() => {
+    const freq = midiToFrequency(midiForOpenString(stringIndex) + fret)
+    scheduleNote(ctx, freq, ctx.currentTime + SCHEDULE_LEAD_IN, NOTE_DURATION)
+  })
 }
