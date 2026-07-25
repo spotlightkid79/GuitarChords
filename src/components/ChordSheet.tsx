@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { CHORDS, type ChordShape } from '../data/chords'
+import { CHORDS, type ChordQuality, type ChordShape } from '../data/chords'
 import { playChord } from '../lib/audio'
 import { extractStanzas, isChordLine, parseChordToken } from '../lib/chordSheetParser'
+import type { NoteName } from '../lib/music-theory'
 import { useProgressionStore, type BoardLine } from '../store/progressionStore'
 import { useSongsStore } from '../store/songsStore'
 import { CardBody } from './ChordCard'
@@ -31,12 +32,64 @@ function findChord(root: string, quality: string, preference: VoicingPreference 
   return filterByPreference(candidates, preference)[0]
 }
 
-/** Among every voicing available for this root+quality (filtered to the voicing preference, open, barre-E, barre-A), picks whichever sits closest on the neck to `nearFret` — keeps a chord sequence from jumping around the fretboard when a closer voicing of the same chord exists. */
-function findClosestChord(root: string, quality: string, nearFret: number, preference: VoicingPreference): ChordShape | undefined {
-  const candidates = chordCandidatesByRootQuality.get(`${root}-${quality}`)
-  if (!candidates || candidates.length === 0) return undefined
-  const pool = filterByPreference(candidates, preference)
-  return pool.reduce((best, c) => (Math.abs(c.baseFret - nearFret) < Math.abs(best.baseFret - nearFret) ? c : best))
+/**
+ * Picks the voicing for each chord in a sequence that minimizes *total* neck movement across the
+ * whole song, not just the jump from the immediately previous chord. A pure greedy "closest to the
+ * last chord" choice can look locally reasonable but back itself into a big jump one step later —
+ * e.g. given Em(7)→G(?)→A(5), a barre-A G at fret 10 is individually closer to Em(7) (distance 3)
+ * than a barre-E G at fret 3 (distance 4), but going on to A(5) afterwards costs 5 more from fret
+ * 10 vs only 2 more from fret 3 — fret 3 wins on the full picture (6 total vs 8). This is a
+ * classic shortest-path problem, solved here with a small dynamic program over each chord's 1-3
+ * candidate voicings (open/barre-E/barre-A).
+ */
+function pickOptimalVoicings(
+  chords: { root: NoteName; quality: ChordQuality }[],
+  preference: VoicingPreference,
+  startFret: number,
+): (ChordShape | undefined)[] {
+  if (chords.length === 0) return []
+
+  const candidateLists = chords.map((c) => {
+    const all = chordCandidatesByRootQuality.get(`${c.root}-${c.quality}`) ?? []
+    return filterByPreference(all, preference)
+  })
+
+  // cost[i][j] = minimum total fret movement to reach candidate j of chord i.
+  // prev[i][j] = which candidate index of chord i-1 that minimum came from.
+  const cost: number[][] = []
+  const prev: number[][] = []
+
+  candidateLists.forEach((candidates, i) => {
+    cost.push([])
+    prev.push([])
+    candidates.forEach((candidate, j) => {
+      if (i === 0) {
+        cost[i][j] = Math.abs(candidate.baseFret - startFret)
+        prev[i][j] = -1
+        return
+      }
+      let bestCost = Infinity
+      let bestPrev = -1
+      candidateLists[i - 1].forEach((prevCandidate, pj) => {
+        const c = cost[i - 1][pj] + Math.abs(candidate.baseFret - prevCandidate.baseFret)
+        if (c < bestCost) {
+          bestCost = c
+          bestPrev = pj
+        }
+      })
+      cost[i][j] = bestCost
+      prev[i][j] = bestPrev
+    })
+  })
+
+  const result: (ChordShape | undefined)[] = new Array(chords.length)
+  const lastCosts = cost[chords.length - 1]
+  let idx = lastCosts.reduce((best, c, j) => (c < lastCosts[best] ? j : best), 0)
+  for (let i = chords.length - 1; i >= 0; i--) {
+    result[i] = candidateLists[i][idx]
+    idx = prev[i][idx]
+  }
+  return result
 }
 
 const PLACEHOLDER = `Bm
@@ -107,22 +160,19 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
   )
 
   function buildBoardLines(): BoardLine[] {
-    // Tracks the neck position of the last-picked chord across the whole song (not reset per
-    // stanza) so consecutive chords favor whichever voicing keeps the hand near where it already
-    // is, instead of e.g. jumping to a barre-A shape at fret 10 when a barre-E at fret 3 exists.
-    let currentFret = 0
-    return stanzas.map((stanza, i) => ({
-      id: crypto.randomUUID(),
-      name: `Line ${i + 1}`,
-      items: stanza.chords
-        .map((c) => {
-          const chord = findClosestChord(c.root, c.quality, currentFret, preference)
-          if (chord) currentFret = chord.baseFret
-          return chord
-        })
+    // Optimized across the whole song (not per stanza) so a voicing choice near a stanza boundary
+    // still accounts for what comes right after it in the next section.
+    const flatChords = stanzas.flatMap((s) => s.chords)
+    const chosen = pickOptimalVoicings(flatChords, preference, 0)
+
+    let cursor = 0
+    return stanzas.map((stanza, i) => {
+      const items = stanza.chords
+        .map(() => chosen[cursor++])
         .filter((c): c is ChordShape => !!c)
-        .map((c) => ({ instanceId: crypto.randomUUID(), chordId: c.id })),
-    }))
+        .map((c) => ({ instanceId: crypto.randomUUID(), chordId: c.id }))
+      return { id: crypto.randomUUID(), name: `Line ${i + 1}`, items }
+    })
   }
 
   function handleSendToChords() {
