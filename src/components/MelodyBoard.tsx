@@ -1,7 +1,8 @@
 import { useDroppable } from '@dnd-kit/core'
 import { useRef, useState } from 'react'
 import { playNotes } from '../lib/audio'
-import { useMelodyStore, type MelodyLine, type MelodyNoteItem } from '../store/melodyStore'
+import { COMMON_TIME_SIGNATURES, DURATIONS, isNoteEvent, sigLabel, type MelodyEvent, type NoteEvent } from '../lib/rhythm'
+import { lastTimeSignature, useMelodyStore, type MelodyLine } from '../store/melodyStore'
 import ExpandToggle from './ExpandToggle'
 import StaffView, { type StaffMode } from './StaffView'
 
@@ -12,6 +13,37 @@ export function melodyLineDroppableId(lineId: string) {
 interface PlayingItem {
   lineId: string
   instanceId: string
+}
+
+function RhythmPalette() {
+  const { inputDuration, inputDotted, setInputDuration, toggleInputDotted } = useMelodyStore()
+  return (
+    <div className="flex items-center gap-0.5 rounded-md border border-white/10 p-0.5">
+      {DURATIONS.map((d) => (
+        <button
+          key={d.code}
+          type="button"
+          onClick={() => setInputDuration(d.code)}
+          title={d.label}
+          className={`rounded px-1.5 py-0.5 text-sm leading-none transition-colors ${
+            inputDuration === d.code ? 'bg-purple-500/20 text-purple-300' : 'text-zinc-500 hover:text-zinc-300'
+          }`}
+        >
+          {d.symbol}
+        </button>
+      ))}
+      <button
+        type="button"
+        onClick={toggleInputDotted}
+        title="Dotted"
+        className={`rounded px-1.5 py-0.5 text-sm font-bold leading-none transition-colors ${
+          inputDotted ? 'bg-purple-500/20 text-purple-300' : 'text-zinc-500 hover:text-zinc-300'
+        }`}
+      >
+        •
+      </button>
+    </div>
+  )
 }
 
 function MelodyLineRow({
@@ -29,14 +61,16 @@ function MelodyLineRow({
   onPlay: () => void
   viewMode: StaffMode
 }) {
-  const { removeItem, removeLine, renameLine, moveLine } = useMelodyStore()
+  const { removeItem, removeLine, renameLine, moveLine, addRest, addTimeSignature, inputDuration, inputDotted } =
+    useMelodyStore()
   const { setNodeRef, isOver } = useDroppable({ id: melodyLineDroppableId(line.id) })
   const [editing, setEditing] = useState(false)
   const [draftName, setDraftName] = useState(line.name)
+  const currentSig = lastTimeSignature(line.items)
 
   return (
     <div className="flex items-start gap-3">
-      <div className="flex w-24 shrink-0 flex-col items-start gap-1.5 pt-2">
+      <div className="flex w-28 shrink-0 flex-col items-start gap-1.5 pt-2">
         {editing ? (
           <input
             autoFocus
@@ -65,6 +99,21 @@ function MelodyLineRow({
             {line.name}
           </button>
         )}
+        <select
+          value={sigLabel(currentSig)}
+          onChange={(e) => {
+            const found = COMMON_TIME_SIGNATURES.find((c) => c.label === e.target.value)
+            if (found) addTimeSignature(line.id, found.sig)
+          }}
+          title="Time signature from here"
+          className="w-full rounded border border-white/10 bg-white/10 px-1 py-0.5 text-[10px] text-zinc-300 focus:outline-none focus:ring-1 focus:ring-purple-400"
+        >
+          {COMMON_TIME_SIGNATURES.map((c) => (
+            <option key={c.label} value={c.label}>
+              {c.label}
+            </option>
+          ))}
+        </select>
         <div className="flex gap-1.5 text-[10px] text-zinc-500">
           <button
             type="button"
@@ -75,6 +124,14 @@ function MelodyLineRow({
             title="Play line"
           >
             ▶
+          </button>
+          <button
+            type="button"
+            onClick={() => addRest(line.id, { duration: inputDuration, dotted: inputDotted })}
+            className="hover:text-purple-300"
+            title="Add rest"
+          >
+            rest
           </button>
           <button
             type="button"
@@ -130,14 +187,17 @@ export default function MelodyBoard() {
   const [playingItem, setPlayingItem] = useState<PlayingItem | null>(null)
   const playbackTokenRef = useRef(0)
 
-  function playSequence(sequence: { lineId: string; item: MelodyNoteItem }[]) {
-    if (sequence.length === 0) return
+  function playSequence(sequence: { lineId: string; item: MelodyEvent }[]) {
+    const notesOnly = sequence.filter(
+      (s): s is { lineId: string; item: NoteEvent } => isNoteEvent(s.item),
+    )
+    if (notesOnly.length === 0) return
     const token = ++playbackTokenRef.current
     const totalDuration = playNotes(
-      sequence.map(({ item }) => ({ stringIndex: item.stringIndex, fret: item.fret })),
+      notesOnly.map(({ item }) => ({ stringIndex: item.stringIndex, fret: item.fret })),
       (_position, i) => {
         if (playbackTokenRef.current !== token) return
-        setPlayingItem({ lineId: sequence[i].lineId, instanceId: sequence[i].item.instanceId })
+        setPlayingItem({ lineId: notesOnly[i].lineId, instanceId: notesOnly[i].item.instanceId })
       },
       { sort: false },
     )
@@ -154,6 +214,7 @@ export default function MelodyBoard() {
         <div className="flex items-center gap-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">Melody</h2>
           <ExpandToggle expanded={!collapsed} onClick={() => setCollapsed((c) => !c)} />
+          <RhythmPalette />
           <div className="flex items-center gap-0.5 rounded-md border border-white/10 p-0.5">
             <button
               type="button"

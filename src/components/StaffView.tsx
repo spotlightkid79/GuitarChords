@@ -1,14 +1,28 @@
 import { useEffect, useRef } from 'react'
-import { Accidental, Formatter, Renderer, Stave, StaveNote, TabNote, TabStave } from 'vexflow'
+import {
+  Accidental,
+  Dot,
+  Formatter,
+  GhostNote,
+  Renderer,
+  Stave,
+  StaveNote,
+  StaveTie,
+  TabNote,
+  TabStave,
+  type StemmableNote,
+} from 'vexflow'
 import { midiAtFret, midiToNoteName, midiToOctave } from '../lib/music-theory'
-import type { MelodyNoteItem } from '../store/melodyStore'
+import { layoutMeasures, sigLabel, type LayoutPiece, type MelodyEvent } from '../lib/rhythm'
 
 // Guitar is a transposing instrument: written notation is conventionally one octave above
 // the sounding pitch, which keeps everyday guitar range close to the staff instead of
 // needing a huge stack of ledger lines below it.
 const WRITTEN_OCTAVE_OFFSET = 12
 const ACTIVE_COLOR = '#fbbf24'
+const AUTO_REST_COLOR = '#4b4b57'
 const STRING_COUNT = 6
+const REST_KEY = 'b/4'
 
 function vexKey(soundingMidi: number): string {
   const writtenMidi = soundingMidi + WRITTEN_OCTAVE_OFFSET
@@ -27,7 +41,7 @@ export default function StaffView({
   activeInstanceId = null,
   mode = 'staff',
 }: {
-  items: MelodyNoteItem[]
+  items: MelodyEvent[]
   onRemove?: (instanceId: string) => void
   activeInstanceId?: string | null
   mode?: StaffMode
@@ -39,81 +53,120 @@ export default function StaffView({
     if (!container) return
     container.innerHTML = ''
 
-    const width = Math.max(260, 60 + items.length * 60)
+    const measures = layoutMeasures(items)
     const height = mode === 'tab' ? 140 : 210
     const staveY = mode === 'tab' ? 20 : 60
+    const measureWidths = measures.map((m, i) => {
+      let w = Math.max(90, 40 + m.pieces.length * 55)
+      if (i === 0) w += 30
+      if (m.showTimeSignature) w += 30
+      return w
+    })
+    const totalWidth = measureWidths.reduce((a, b) => a + b, 0) + 20
 
     const renderer = new Renderer(container, Renderer.Backends.SVG)
-    renderer.resize(width, height)
+    renderer.resize(totalWidth, height)
     const context = renderer.getContext()
     context.setFillStyle('#e8e8ec')
     context.setStrokeStyle('#e8e8ec')
 
-    const stave = mode === 'tab' ? new TabStave(10, staveY, width - 20) : new Stave(10, staveY, width - 20)
-    stave.addClef(mode === 'tab' ? 'tab' : 'treble')
-    stave.setContext(context).draw()
+    const flatNotes: { el: StemmableNote; piece: LayoutPiece }[] = []
+    let x = 10
 
-    if (items.length === 0) return
+    measures.forEach((measure, i) => {
+      const stave = mode === 'tab' ? new TabStave(x, staveY, measureWidths[i]) : new Stave(x, staveY, measureWidths[i])
+      if (i === 0) stave.addClef(mode === 'tab' ? 'tab' : 'treble')
+      if (measure.showTimeSignature && mode === 'staff') stave.addTimeSignature(sigLabel(measure.sig))
+      stave.setContext(context).draw()
+      x += measureWidths[i]
 
-    const notes = items.map((item) => {
-      const isActive = item.instanceId === activeInstanceId
-      const activeStyle = { fillStyle: ACTIVE_COLOR, strokeStyle: ACTIVE_COLOR }
+      const vexNotes = measure.pieces.map((piece) => {
+        const isActive = piece.sourceInstanceId === activeInstanceId
+        const activeStyle = { fillStyle: ACTIVE_COLOR, strokeStyle: ACTIVE_COLOR }
+        const dimStyle = { fillStyle: AUTO_REST_COLOR, strokeStyle: AUTO_REST_COLOR }
+
+        if (mode === 'tab') {
+          if (piece.kind === 'rest') {
+            return new GhostNote({ duration: piece.duration })
+          }
+          const tabString = STRING_COUNT - (piece.stringIndex ?? 0)
+          const tabNote = new TabNote({ positions: [{ str: tabString, fret: piece.fret ?? 0 }], duration: piece.duration })
+          if (piece.dotted) Dot.buildAndAttach([tabNote], { all: true })
+          if (isActive) tabNote.setStyle(activeStyle)
+          return tabNote
+        }
+
+        if (piece.kind === 'rest') {
+          const restNote = new StaveNote({ keys: [REST_KEY], duration: `${piece.duration}r` })
+          if (piece.dotted) Dot.buildAndAttach([restNote], { all: true })
+          restNote.setStyle(piece.autoInserted ? dimStyle : isActive ? activeStyle : {})
+          return restNote
+        }
+
+        const midi = midiAtFret(piece.stringIndex ?? 0, piece.fret ?? 0)
+        const key = vexKey(midi)
+        const staveNote = new StaveNote({ keys: [key], duration: piece.duration })
+        if (key.includes('#')) {
+          const accidental = new Accidental('#')
+          if (isActive) accidental.setStyle(activeStyle)
+          staveNote.addModifier(accidental)
+        }
+        if (piece.dotted) Dot.buildAndAttach([staveNote], { all: true })
+        if (isActive) staveNote.setStyle(activeStyle)
+        return staveNote
+      })
+
+      if (vexNotes.length > 0) Formatter.FormatAndDraw(context, stave, vexNotes)
 
       if (mode === 'tab') {
-        const tabString = STRING_COUNT - item.stringIndex
-        const tabNote = new TabNote({ positions: [{ str: tabString, fret: item.fret }], duration: 'q' })
-        if (isActive) tabNote.setStyle(activeStyle)
-        return tabNote
+        // VexFlow draws each fret number on a small opaque white "clear" rect over the tab
+        // line, sized for its own tiny default font. We swap in a bigger, legible font, so the
+        // rect (still sized for the old glyph) needs resizing to match, and both need colors
+        // that work against our dark background instead of assuming a white page.
+        vexNotes.forEach((note, ni) => {
+          const el = note.getSVGElement()
+          if (!el) return
+          const piece = measure.pieces[ni]
+          const isActive = piece.sourceInstanceId === activeInstanceId
+          const text = el.querySelector('text')
+          const rect = el.querySelector('rect')
+          if (!text) return
+          text.setAttribute('font-family', 'system-ui, sans-serif')
+          text.setAttribute('font-size', '13px')
+          text.setAttribute('font-weight', '700')
+          text.setAttribute('fill', isActive ? ACTIVE_COLOR : '#e8e8ec')
+          if (rect) {
+            const bbox = text.getBBox()
+            rect.setAttribute('x', String(bbox.x - 2))
+            rect.setAttribute('y', String(bbox.y - 2))
+            rect.setAttribute('width', String(bbox.width + 4))
+            rect.setAttribute('height', String(bbox.height + 4))
+            rect.setAttribute('fill', '#14151b')
+          }
+        })
       }
 
-      const midi = midiAtFret(item.stringIndex, item.fret)
-      const key = vexKey(midi)
-      const staveNote = new StaveNote({ keys: [key], duration: 'q' })
-      if (key.includes('#')) {
-        const accidental = new Accidental('#')
-        if (isActive) accidental.setStyle(activeStyle)
-        staveNote.addModifier(accidental)
+      if (onRemove) {
+        vexNotes.forEach((note, ni) => {
+          const piece = measure.pieces[ni]
+          if (piece.autoInserted) return
+          const el = note.getSVGElement()
+          if (!el) return
+          el.style.cursor = 'pointer'
+          el.addEventListener('click', () => onRemove(piece.sourceInstanceId))
+        })
       }
-      if (isActive) staveNote.setStyle(activeStyle)
-      return staveNote
+
+      vexNotes.forEach((note, ni) => flatNotes.push({ el: note, piece: measure.pieces[ni] }))
     })
 
-    Formatter.FormatAndDraw(context, stave, notes)
-
-    if (mode === 'tab') {
-      // VexFlow draws each fret number on a small opaque white "clear" rect over the tab
-      // line, sized for its own tiny default font. We swap in a bigger, legible font, so the
-      // rect (still sized for the old glyph) needs resizing to match, and both need colors
-      // that work against our dark background instead of assuming a white page.
-      notes.forEach((note, i) => {
-        const el = note.getSVGElement()
-        if (!el) return
-        const isActive = items[i].instanceId === activeInstanceId
-        const text = el.querySelector('text')
-        const rect = el.querySelector('rect')
-        if (!text) return
-        text.setAttribute('font-family', 'system-ui, sans-serif')
-        text.setAttribute('font-size', '13px')
-        text.setAttribute('font-weight', '700')
-        text.setAttribute('fill', isActive ? ACTIVE_COLOR : '#e8e8ec')
-        if (rect) {
-          const bbox = text.getBBox()
-          rect.setAttribute('x', String(bbox.x - 2))
-          rect.setAttribute('y', String(bbox.y - 2))
-          rect.setAttribute('width', String(bbox.width + 4))
-          rect.setAttribute('height', String(bbox.height + 4))
-          rect.setAttribute('fill', '#14151b')
+    if (mode === 'staff') {
+      for (let i = 0; i < flatNotes.length - 1; i++) {
+        if (flatNotes[i].piece.tiedToNext && flatNotes[i].piece.kind === 'note') {
+          const tie = new StaveTie({ firstNote: flatNotes[i].el, lastNote: flatNotes[i + 1].el })
+          tie.setContext(context).draw()
         }
-      })
-    }
-
-    if (onRemove) {
-      notes.forEach((note, i) => {
-        const el = note.getSVGElement()
-        if (!el) return
-        el.style.cursor = 'pointer'
-        el.addEventListener('click', () => onRemove(items[i].instanceId))
-      })
+      }
     }
   }, [items, onRemove, activeInstanceId, mode])
 

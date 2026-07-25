@@ -84,7 +84,7 @@ export default function App() {
     if (!over) return
     const activeId = String(active.id)
     const overId = String(over.id)
-    const { lines, addNote, reorderInLine, moveItemToLine } = useMelodyStore.getState()
+    const { lines, addNote, reorderInLine, moveItemToLine, inputDuration, inputDotted } = useMelodyStore.getState()
 
     const target = resolveMelodyDropTarget(lines, overId)
     if (!target) return
@@ -92,7 +92,11 @@ export default function App() {
     if (activeId.startsWith('note:')) {
       const data = active.data.current as { note: NoteName; stringIndex: number; fret: number } | undefined
       if (!data) return
-      addNote(target.lineId, { note: data.note, stringIndex: data.stringIndex, fret: data.fret }, target.index)
+      addNote(
+        target.lineId,
+        { note: data.note, stringIndex: data.stringIndex, fret: data.fret, duration: inputDuration, dotted: inputDotted },
+        target.index,
+      )
       return
     }
 

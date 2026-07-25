@@ -1,27 +1,33 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { NoteName } from '../lib/music-theory'
+import { DEFAULT_TIME_SIG, type DurationCode, type MelodyEvent, type TimeSig } from '../lib/rhythm'
 
-export interface MelodyNoteItem {
-  instanceId: string
-  note: NoteName
-  stringIndex: number
-  fret: number
-}
+export type { MelodyEvent } from '../lib/rhythm'
 
 export interface MelodyLine {
   id: string
   name: string
-  items: MelodyNoteItem[]
+  items: MelodyEvent[]
 }
 
 interface MelodyState {
   lines: MelodyLine[]
+  inputDuration: DurationCode
+  inputDotted: boolean
+  setInputDuration: (duration: DurationCode) => void
+  toggleInputDotted: () => void
   addLine: () => void
   removeLine: (lineId: string) => void
   renameLine: (lineId: string, name: string) => void
   moveLine: (lineId: string, direction: -1 | 1) => void
-  addNote: (lineId: string, note: { note: NoteName; stringIndex: number; fret: number }, atIndex?: number) => void
+  addNote: (
+    lineId: string,
+    note: { note: NoteName; stringIndex: number; fret: number; duration: DurationCode; dotted: boolean },
+    atIndex?: number,
+  ) => void
+  addRest: (lineId: string, rest: { duration: DurationCode; dotted: boolean }, atIndex?: number) => void
+  addTimeSignature: (lineId: string, sig: TimeSig, atIndex?: number) => void
   removeItem: (lineId: string, instanceId: string) => void
   reorderInLine: (lineId: string, fromIndex: number, toIndex: number) => void
   moveItemToLine: (fromLineId: string, toLineId: string, instanceId: string, toIndex?: number) => void
@@ -32,10 +38,22 @@ function newLine(index: number): MelodyLine {
   return { id: crypto.randomUUID(), name: `Line ${index}`, items: [] }
 }
 
+function insertAt<T>(items: T[], item: T, atIndex?: number): T[] {
+  const next = [...items]
+  if (atIndex === undefined || atIndex >= next.length) next.push(item)
+  else next.splice(atIndex, 0, item)
+  return next
+}
+
 export const useMelodyStore = create<MelodyState>()(
   persist(
     (set) => ({
       lines: [newLine(1)],
+      inputDuration: 'q',
+      inputDotted: false,
+
+      setInputDuration: (duration) => set({ inputDuration: duration }),
+      toggleInputDotted: () => set((state) => ({ inputDotted: !state.inputDotted })),
 
       addLine: () =>
         set((state) => ({ lines: [...state.lines, newLine(state.lines.length + 1)] })),
@@ -67,11 +85,26 @@ export const useMelodyStore = create<MelodyState>()(
         set((state) => ({
           lines: state.lines.map((l) => {
             if (l.id !== lineId) return l
-            const item: MelodyNoteItem = { instanceId: crypto.randomUUID(), ...note }
-            const items = [...l.items]
-            if (atIndex === undefined || atIndex >= items.length) items.push(item)
-            else items.splice(atIndex, 0, item)
-            return { ...l, items }
+            const item: MelodyEvent = { instanceId: crypto.randomUUID(), type: 'note', ...note }
+            return { ...l, items: insertAt(l.items, item, atIndex) }
+          }),
+        })),
+
+      addRest: (lineId, rest, atIndex) =>
+        set((state) => ({
+          lines: state.lines.map((l) => {
+            if (l.id !== lineId) return l
+            const item: MelodyEvent = { instanceId: crypto.randomUUID(), type: 'rest', ...rest }
+            return { ...l, items: insertAt(l.items, item, atIndex) }
+          }),
+        })),
+
+      addTimeSignature: (lineId, sig, atIndex) =>
+        set((state) => ({
+          lines: state.lines.map((l) => {
+            if (l.id !== lineId) return l
+            const item: MelodyEvent = { instanceId: crypto.randomUUID(), type: 'time-signature', ...sig }
+            return { ...l, items: insertAt(l.items, item, atIndex) }
           }),
         })),
 
@@ -121,3 +154,11 @@ export const useMelodyStore = create<MelodyState>()(
     { name: 'guitar-melody' },
   ),
 )
+
+export function lastTimeSignature(items: MelodyEvent[]): TimeSig {
+  for (let i = items.length - 1; i >= 0; i--) {
+    const item = items[i]
+    if (item.type === 'time-signature') return { beats: item.beats, beatValue: item.beatValue }
+  }
+  return DEFAULT_TIME_SIG
+}
