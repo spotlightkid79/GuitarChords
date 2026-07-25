@@ -1,7 +1,19 @@
 import { useState } from 'react'
-import { playNote } from '../lib/audio'
-import { ALL_ROOTS, type NoteName } from '../lib/music-theory'
+import { playNotes } from '../lib/audio'
+import { ALL_ROOTS, STANDARD_TUNING, noteAtFret, type NoteName } from '../lib/music-theory'
 import Fretboard from './Fretboard'
+
+const FRET_COUNT = 12
+
+function positionsForNote(note: NoteName) {
+  const positions: { stringIndex: number; fret: number }[] = []
+  STANDARD_TUNING.forEach((openNote, stringIndex) => {
+    for (let fret = 0; fret <= FRET_COUNT; fret++) {
+      if (noteAtFret(openNote, fret) === note) positions.push({ stringIndex, fret })
+    }
+  })
+  return positions
+}
 
 export default function NotesExplorer() {
   const [highlightNote, setHighlightNote] = useState<NoteName | null>(null)
@@ -9,9 +21,9 @@ export default function NotesExplorer() {
   const toggleNote = (note: NoteName) =>
     setHighlightNote((current) => (current === note ? null : note))
 
-  const handleFretboardClick = (note: NoteName, stringIndex: number, fret: number) => {
+  const handleFretboardClick = (note: NoteName) => {
     toggleNote(note)
-    playNote(stringIndex, fret)
+    playNotes(positionsForNote(note))
   }
 
   return (
@@ -49,7 +61,10 @@ export default function NotesExplorer() {
         <h2 className="text-lg font-semibold text-zinc-100">
           {highlightNote ? `Fretboard notes — ${highlightNote} highlighted` : 'Fretboard notes'}
         </h2>
-        <p className="text-xs text-zinc-500">Click a note on the fretboard to select it, or click it again to clear.</p>
+        <p className="text-xs text-zinc-500">
+          Click a note on the fretboard to select it and hear every matching note ring together — click it again to
+          clear.
+        </p>
         <div className="w-full overflow-x-auto rounded-lg border border-white/10 bg-white/5 p-3">
           <Fretboard mode="notes" highlightNote={highlightNote} onNoteClick={handleFretboardClick} />
         </div>

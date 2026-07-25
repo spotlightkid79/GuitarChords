@@ -101,11 +101,23 @@ export function playChordSequence(chords: ChordShape[]): number {
   return chords.length * CHORD_DURATION
 }
 
-/** Plays a single open/fretted note on one string, e.g. from the Notes tab fretboard. */
-export function playNote(stringIndex: number, fret: number) {
+export interface FretPosition {
+  stringIndex: number
+  fret: number
+}
+
+/** Plays every given fretboard position together as a quick low-to-high strum. */
+export function playNotes(positions: FretPosition[]) {
+  if (positions.length === 0) return
   const ctx = getAudioContext()
   void ensureRunning(ctx).then(() => {
-    const freq = midiToFrequency(midiForOpenString(stringIndex) + fret)
-    scheduleNote(ctx, freq, ctx.currentTime + SCHEDULE_LEAD_IN, NOTE_DURATION)
+    const sorted = [...positions].sort(
+      (a, b) => midiForOpenString(a.stringIndex) + a.fret - (midiForOpenString(b.stringIndex) + b.fret),
+    )
+    const startTime = ctx.currentTime + SCHEDULE_LEAD_IN
+    sorted.forEach(({ stringIndex, fret }, i) => {
+      const freq = midiToFrequency(midiForOpenString(stringIndex) + fret)
+      scheduleNote(ctx, freq, startTime + i * STRUM_DELAY, NOTE_DURATION)
+    })
   })
 }
