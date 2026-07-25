@@ -146,6 +146,10 @@ function NeckDiagram({
   isPlaying,
   ariaLabel,
   onNoteClick,
+  minWidth = 640,
+  widthPerFret = 52,
+  dotRadius = 9.5,
+  fontSize = 9,
 }: {
   fretCount?: number
   isVisible: (note: NoteName) => boolean
@@ -153,8 +157,12 @@ function NeckDiagram({
   isPlaying?: (stringIndex: number, fret: number) => boolean
   ariaLabel: string
   onNoteClick?: (note: NoteName, stringIndex: number, fret: number) => void
+  minWidth?: number
+  widthPerFret?: number
+  dotRadius?: number
+  fontSize?: number
 }) {
-  const width = Math.max(640, fretCount * 52)
+  const width = Math.max(minWidth, fretCount * widthPerFret)
   const height = 190
   const padLeft = 28
   const padRight = 16
@@ -170,7 +178,7 @@ function NeckDiagram({
   const rowToStringIndex = (row: number) => STRING_COUNT - 1 - row
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} role="img" aria-label={ariaLabel}>
+    <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} role="img" aria-label={ariaLabel}>
       {/* fretboard background */}
       <rect x={padLeft} y={padTop} width={gridW} height={gridH} fill="#1a1b22" rx="4" />
 
@@ -237,16 +245,16 @@ function NeckDiagram({
               <circle
                 cx={x}
                 cy={y}
-                r={playing ? 12 : 9.5}
+                r={playing ? dotRadius * 1.26 : dotRadius}
                 fill={playing ? '#fbbf24' : emphasis ? '#c084fc' : '#2e303a'}
                 stroke={playing ? '#fbbf24' : emphasis ? '#c084fc' : '#6b6b78'}
                 strokeWidth={playing ? 2.5 : 1.5}
               />
               <text
                 x={x}
-                y={y + 3.5}
+                y={y + fontSize * 0.4}
                 textAnchor="middle"
-                fontSize="9"
+                fontSize={fontSize}
                 fontWeight={playing || emphasis ? 700 : 400}
                 fill={playing || emphasis ? '#0f1115' : '#e8e8ec'}
               >
@@ -288,6 +296,10 @@ function NotesNeck({
       }
       ariaLabel={highlightNote ? `Fretboard notes, highlighting ${highlightNote}` : 'Fretboard notes'}
       onNoteClick={onNoteClick}
+      minWidth={900}
+      widthPerFret={72}
+      dotRadius={12}
+      fontSize={11}
     />
   )
 }
