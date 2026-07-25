@@ -23,15 +23,26 @@ export default function NotesExplorer() {
   const toggleNote = (note: NoteName) =>
     setHighlightNote((current) => (current === note ? null : note))
 
-  const handleFretboardClick = (note: NoteName) => {
-    toggleNote(note)
+  const playSequence = (positions: FretPosition[]) => {
     const token = ++playbackTokenRef.current
-    const totalDuration = playNotes(positionsForNote(note), (position) => {
+    const totalDuration = playNotes(positions, (position) => {
       if (playbackTokenRef.current === token) setPlayingPosition(position)
     })
     window.setTimeout(() => {
       if (playbackTokenRef.current === token) setPlayingPosition(null)
     }, totalDuration * 1000)
+  }
+
+  // Clicking a note letter above (next to "Highlight:") rings every matching note, one by one.
+  const handleHighlightClick = (note: NoteName) => {
+    toggleNote(note)
+    playSequence(positionsForNote(note))
+  }
+
+  // Clicking a specific dot on the fretboard rings just that one note.
+  const handleFretboardClick = (note: NoteName, stringIndex: number, fret: number) => {
+    toggleNote(note)
+    playSequence([{ stringIndex, fret }])
   }
 
   return (
@@ -53,7 +64,7 @@ export default function NotesExplorer() {
           <button
             key={note}
             type="button"
-            onClick={() => toggleNote(note)}
+            onClick={() => handleHighlightClick(note)}
             className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
               highlightNote === note
                 ? 'bg-purple-500/20 text-purple-300'
@@ -70,8 +81,8 @@ export default function NotesExplorer() {
           {highlightNote ? `Fretboard notes — ${highlightNote} highlighted` : 'Fretboard notes'}
         </h2>
         <p className="text-xs text-zinc-500">
-          Click a note on the fretboard to select it and hear every matching note play one by one — click it again
-          to clear.
+          Click a note above to hear every matching note play one by one, or click a note on the fretboard to ring
+          just that one — click a selected note again to clear.
         </p>
         <div className="w-full overflow-x-auto rounded-lg border border-white/10 bg-white/5 p-3">
           <Fretboard
