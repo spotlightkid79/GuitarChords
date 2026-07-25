@@ -1,0 +1,41 @@
+{
+  "format": "guitar-chords-song",
+  "version": 1,
+  "name": "Sıralı_BarreCords",
+  "lines": [
+    {
+      "id": "bb5ef802-4271-4228-9ca4-9d64dd84dd89",
+      "name": "Line 1",
+      "items": [
+        {
+          "instanceId": "9eeb667c-599d-4402-a70a-c9b93e13407e",
+          "chordId": "C-min-barre-a"
+        },
+        {
+          "instanceId": "536f22a3-84fb-4173-96a5-d2a24b0592fa",
+          "chordId": "D-min-barre-a"
+        },
+        {
+          "instanceId": "ef019618-3f89-4024-8dca-49faa05152c9",
+          "chordId": "E-min-barre-a"
+        },
+        {
+          "instanceId": "61efc634-c08b-4468-ba5a-f39f22fe6a6b",
+          "chordId": "F-min-barre-a"
+        },
+        {
+          "instanceId": "6e65b3a6-f5f0-4ac4-9b85-eea283a45153",
+          "chordId": "G-min-barre-a"
+        },
+        {
+          "instanceId": "d7fe94be-9021-4eaf-a814-b8e32d01b639",
+          "chordId": "A-min-barre-e"
+        },
+        {
+          "instanceId": "5413ed61-8c59-4d0c-8d59-3d37989240a6",
+          "chordId": "B-min-barre-a"
+        }
+      ]
+    }
+  ]
+}
