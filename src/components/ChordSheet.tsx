@@ -6,10 +6,24 @@ import { useProgressionStore, type BoardLine } from '../store/progressionStore'
 import { useSongsStore } from '../store/songsStore'
 import { CardBody } from './ChordCard'
 
-const chordByRootQuality = new Map(CHORDS.map((c) => [`${c.root}-${c.quality}`, c]))
+const chordCandidatesByRootQuality = new Map<string, ChordShape[]>()
+for (const chord of CHORDS) {
+  const key = `${chord.root}-${chord.quality}`
+  const list = chordCandidatesByRootQuality.get(key)
+  if (list) list.push(chord)
+  else chordCandidatesByRootQuality.set(key, [chord])
+}
 
+/** Picks a single default shape for a root+quality — used for the inline sheet preview, where there's no surrounding sequence to place it near. */
 function findChord(root: string, quality: string): ChordShape | undefined {
-  return chordByRootQuality.get(`${root}-${quality}`)
+  return chordCandidatesByRootQuality.get(`${root}-${quality}`)?.[0]
+}
+
+/** Among every voicing available for this root+quality (open, barre-E, barre-A), picks whichever sits closest on the neck to `nearFret` — keeps a chord sequence from jumping around the fretboard when a closer voicing of the same chord exists. */
+function findClosestChord(root: string, quality: string, nearFret: number): ChordShape | undefined {
+  const candidates = chordCandidatesByRootQuality.get(`${root}-${quality}`)
+  if (!candidates || candidates.length === 0) return undefined
+  return candidates.reduce((best, c) => (Math.abs(c.baseFret - nearFret) < Math.abs(best.baseFret - nearFret) ? c : best))
 }
 
 const PLACEHOLDER = `Bm
@@ -71,11 +85,19 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
   )
 
   function buildBoardLines(): BoardLine[] {
+    // Tracks the neck position of the last-picked chord across the whole song (not reset per
+    // stanza) so consecutive chords favor whichever voicing keeps the hand near where it already
+    // is, instead of e.g. jumping to a barre-A shape at fret 10 when a barre-E at fret 3 exists.
+    let currentFret = 0
     return stanzas.map((stanza, i) => ({
       id: crypto.randomUUID(),
       name: `Line ${i + 1}`,
       items: stanza.chords
-        .map((c) => findChord(c.root, c.quality))
+        .map((c) => {
+          const chord = findClosestChord(c.root, c.quality, currentFret)
+          if (chord) currentFret = chord.baseFret
+          return chord
+        })
         .filter((c): c is ChordShape => !!c)
         .map((c) => ({ instanceId: crypto.randomUUID(), chordId: c.id })),
     }))
