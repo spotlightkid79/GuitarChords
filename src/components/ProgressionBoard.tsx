@@ -3,6 +3,7 @@ import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortabl
 import { useRef, useState } from 'react'
 import { CHORDS, type ChordShape } from '../data/chords'
 import { playChordSequence } from '../lib/audio'
+import { importMultipleFiles, summarizeImport } from '../lib/importFiles'
 import { downloadAllSongs, downloadSong, parseSongFile } from '../lib/songFile'
 import { useScrollPlayingIntoView } from '../lib/useScrollPlayingIntoView'
 import { useProgressionStore, type BoardItem, type BoardLine } from '../store/progressionStore'
@@ -181,23 +182,15 @@ function SongControls() {
   }
 
   function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
+    // Copy out of the live FileList before resetting e.target.value — clearing the input's value
+    // also empties that same FileList object, not just future reads of it.
+    const files = Array.from(e.target.files ?? [])
     e.target.value = ''
-    if (!file) return
-    file
-      .text()
-      .then((raw) => {
-        const imported = parseSongFile(raw)
-        imported.forEach((s) => saveAsNew(s.name, s.lines))
-        window.alert(
-          imported.length === 1
-            ? `Imported "${imported[0].name}".`
-            : `Imported ${imported.length} songs.`,
-        )
-      })
-      .catch((err) => {
-        window.alert(err instanceof Error ? err.message : 'Could not import that file.')
-      })
+    if (files.length === 0) return
+    importMultipleFiles(files, parseSongFile).then((result) => {
+      result.imported.forEach((s) => saveAsNew(s.name, s.lines))
+      window.alert(summarizeImport(result, 'song'))
+    })
   }
 
   return (
@@ -257,11 +250,12 @@ function SongControls() {
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}
+        title="You can select multiple files at once"
         className="text-xs text-zinc-500 hover:text-zinc-300"
       >
         Import…
       </button>
-      <input ref={fileInputRef} type="file" accept="application/json" onChange={handleImportFile} className="hidden" />
+      <input ref={fileInputRef} type="file" accept="application/json" multiple onChange={handleImportFile} className="hidden" />
     </div>
   )
 }

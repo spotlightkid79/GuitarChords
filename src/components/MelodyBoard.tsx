@@ -1,6 +1,7 @@
 import { useDroppable } from '@dnd-kit/core'
 import { useRef, useState, type ChangeEvent } from 'react'
 import { playNotes } from '../lib/audio'
+import { importMultipleFiles, summarizeImport } from '../lib/importFiles'
 import { downloadAllMelodies, downloadMelody, parseMelodyFile } from '../lib/melodyFile'
 import { COMMON_TIME_SIGNATURES, DURATIONS, isNoteEvent, sigLabel, type DurationCode, type MelodyEvent, type NoteEvent } from '../lib/rhythm'
 import { useMelodiesStore } from '../store/melodiesStore'
@@ -263,21 +264,15 @@ function MelodyControls() {
   }
 
   function handleImportFile(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
+    // Copy out of the live FileList before resetting e.target.value — clearing the input's value
+    // also empties that same FileList object, not just future reads of it.
+    const files = Array.from(e.target.files ?? [])
     e.target.value = ''
-    if (!file) return
-    file
-      .text()
-      .then((raw) => {
-        const imported = parseMelodyFile(raw)
-        imported.forEach((m) => saveAsNew(m.name, m.lines))
-        window.alert(
-          imported.length === 1 ? `Imported "${imported[0].name}".` : `Imported ${imported.length} melodies.`,
-        )
-      })
-      .catch((err) => {
-        window.alert(err instanceof Error ? err.message : 'Could not import that file.')
-      })
+    if (files.length === 0) return
+    importMultipleFiles(files, parseMelodyFile).then((result) => {
+      result.imported.forEach((m) => saveAsNew(m.name, m.lines))
+      window.alert(summarizeImport(result, 'melody'))
+    })
   }
 
   return (
@@ -337,11 +332,12 @@ function MelodyControls() {
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}
+        title="You can select multiple files at once"
         className="text-xs text-zinc-500 hover:text-zinc-300"
       >
         Import…
       </button>
-      <input ref={fileInputRef} type="file" accept="application/json" onChange={handleImportFile} className="hidden" />
+      <input ref={fileInputRef} type="file" accept="application/json" multiple onChange={handleImportFile} className="hidden" />
     </div>
   )
 }

@@ -1,0 +1,163 @@
+{
+  "format": "guitar-chords-song",
+  "version": 1,
+  "name": "MorVeOtesi_BirDerdimVar",
+  "lines": [
+    {
+      "id": "0053e742-d5af-48e8-a7d3-27520eb346b5",
+      "name": "Line 1",
+      "items": [
+        {
+          "instanceId": "628d2234-7053-4bad-83a8-f3f5a08df0e0",
+          "chordId": "B-min-barre-a"
+        },
+        {
+          "instanceId": "f7479d7e-a353-4b71-b629-826aae824e34",
+          "chordId": "A-maj-barre-e"
+        },
+        {
+          "instanceId": "fde4270c-4e0d-486a-8f2a-c6336a3ce83c",
+          "chordId": "E-min-barre-a"
+        }
+      ]
+    },
+    {
+      "id": "aae69a0a-f2ed-45b0-a157-ee14b0edb0f8",
+      "name": "Line 2",
+      "items": [
+        {
+          "instanceId": "e42d5127-3250-4424-a43b-f33cb5d2515a",
+          "chordId": "B-min-barre-e"
+        },
+        {
+          "instanceId": "a6d5db7f-dc5e-4260-8c16-11137062e468",
+          "chordId": "A-maj-barre-e"
+        },
+        {
+          "instanceId": "87563e24-df06-4032-a1f2-8d5645843754",
+          "chordId": "E-min-barre-a"
+        },
+        {
+          "instanceId": "70ec1dda-8c57-4db0-8de5-9c54ae5fe4b0",
+          "chordId": "G-maj-barre-a"
+        },
+        {
+          "instanceId": "19e074e8-94d9-496e-8c2b-76f1886ffb77",
+          "chordId": "A-maj-barre-e"
+        }
+      ]
+    },
+    {
+      "id": "0cfda0fd-20d8-444b-aa0f-58410bbdd76c",
+      "name": "Line 3",
+      "items": [
+        {
+          "instanceId": "94a8dd4b-6147-42ad-8bfb-612ec1c9cf6d",
+          "chordId": "B-min-barre-e"
+        },
+        {
+          "instanceId": "92983cf3-c464-4f00-93a3-0d56740be47b",
+          "chordId": "G-maj-barre-a"
+        },
+        {
+          "instanceId": "837c2b49-0e3e-4135-a531-c92020aea518",
+          "chordId": "B-min-barre-e"
+        },
+        {
+          "instanceId": "ce3b6646-0011-473b-a466-88651dfdf0d4",
+          "chordId": "G-maj-barre-a"
+        }
+      ]
+    },
+    {
+      "id": "e2ea7939-abc5-409f-8557-f3ec54e79cf0",
+      "name": "Line 4",
+      "items": [
+        {
+          "instanceId": "21698f7d-9a19-4b31-9f69-082f70220aae",
+          "chordId": "B-min-barre-e"
+        },
+        {
+          "instanceId": "3f368a37-59ac-4fad-aada-3cef736f892f",
+          "chordId": "A-maj-barre-e"
+        },
+        {
+          "instanceId": "32e9c0a4-556f-4b8d-8d63-1b82b717b63a",
+          "chordId": "E-min-barre-a"
+        },
+        {
+          "instanceId": "9f186783-2aa5-4129-a3fe-c47271b2ca2d",
+          "chordId": "B-min-barre-e"
+        }
+      ]
+    },
+    {
+      "id": "e96d5a95-455f-472a-b880-5ffb187332d7",
+      "name": "Line 5",
+      "items": [
+        {
+          "instanceId": "148ea0c6-0d06-4142-bcee-66d2ba2f0491",
+          "chordId": "D-maj-barre-a"
+        },
+        {
+          "instanceId": "b992c7c1-5f4c-4697-a8b8-b19f8467b4b6",
+          "chordId": "F#-maj-barre-e"
+        },
+        {
+          "instanceId": "348fc87a-c130-4693-a29a-cd0274a60067",
+          "chordId": "B-min-barre-a"
+        },
+        {
+          "instanceId": "6aa54813-5b2a-4561-86c9-66c0f85ca641",
+          "chordId": "G-maj-barre-e"
+        },
+        {
+          "instanceId": "9a289f75-2ce0-40c2-8331-e9bb523d8d73",
+          "chordId": "E-min-barre-a"
+        },
+        {
+          "instanceId": "aa42eb2a-662e-49c8-9bb9-dd1a44051a22",
+          "chordId": "G-maj-barre-a"
+        },
+        {
+          "instanceId": "0ae508ed-7cbd-4aab-bb6d-ee3342f66f90",
+          "chordId": "E-min-barre-a"
+        },
+        {
+          "instanceId": "8b5e74fa-426c-4318-8038-1187e0bc22ba",
+          "chordId": "G-maj-barre-a"
+        },
+        {
+          "instanceId": "6ff9cc60-43f6-495c-88f2-9e7602a7c3e6",
+          "chordId": "A-maj-barre-e"
+        },
+        {
+          "instanceId": "8d7f0e2a-a50b-441b-8f37-8d71116df214",
+          "chordId": "B-min-barre-e"
+        }
+      ]
+    },
+    {
+      "id": "26fede13-6e5d-4745-941b-6de87fc421d6",
+      "name": "Line 6",
+      "items": [
+        {
+          "instanceId": "144cbc3c-bf35-48eb-abcb-08cf0b7b3771",
+          "chordId": "E-min-barre-a"
+        },
+        {
+          "instanceId": "86ea35de-7b46-4899-a8d1-2b28972fb65e",
+          "chordId": "G-maj-barre-a"
+        },
+        {
+          "instanceId": "db9b917f-891b-4083-a9f2-3121ba49deaf",
+          "chordId": "A-maj-barre-e"
+        },
+        {
+          "instanceId": "d259be24-b332-4dbb-8e65-0d7b71a24d8f",
+          "chordId": "B-min-barre-e"
+        }
+      ]
+    }
+  ]
+}

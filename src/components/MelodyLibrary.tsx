@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import type { ImportWarnings, ParsedGpFile } from '../lib/guitarProImport'
 import { playNotes } from '../lib/audio'
+import { importMultipleFiles, summarizeImport } from '../lib/importFiles'
 import { downloadAllLibrarySongs, downloadLibrarySong, parseLibrarySongFile } from '../lib/songLibraryFile'
 import { isNoteEvent } from '../lib/rhythm'
 import type { MelodyLine } from '../store/melodyStore'
@@ -292,19 +293,15 @@ export default function MelodyLibrary({ onEditInNotes }: { onEditInNotes: (lines
   }, [songs])
 
   function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
+    // Copy out of the live FileList before resetting e.target.value — clearing the input's value
+    // also empties that same FileList object, not just future reads of it.
+    const files = Array.from(e.target.files ?? [])
     e.target.value = ''
-    if (!file) return
-    file
-      .text()
-      .then((raw) => {
-        const imported = parseLibrarySongFile(raw)
-        imported.forEach((s) => addSong(s))
-        window.alert(imported.length === 1 ? `Imported "${imported[0].title}".` : `Imported ${imported.length} songs.`)
-      })
-      .catch((err) => {
-        window.alert(err instanceof Error ? err.message : 'Could not import that file.')
-      })
+    if (files.length === 0) return
+    importMultipleFiles(files, parseLibrarySongFile).then((result) => {
+      result.imported.forEach((s) => addSong(s))
+      window.alert(summarizeImport(result, 'song'))
+    })
   }
 
   return (
@@ -317,10 +314,15 @@ export default function MelodyLibrary({ onEditInNotes }: { onEditInNotes: (lines
               Export all
             </button>
           )}
-          <button type="button" onClick={() => fileInputRef.current?.click()} className="hover:text-zinc-300">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            title="You can select multiple files at once"
+            className="hover:text-zinc-300"
+          >
             Import…
           </button>
-          <input ref={fileInputRef} type="file" accept="application/json" onChange={handleImportFile} className="hidden" />
+          <input ref={fileInputRef} type="file" accept="application/json" multiple onChange={handleImportFile} className="hidden" />
         </div>
       </div>
 
