@@ -5,6 +5,7 @@ import ChordLibrary from './components/ChordLibrary'
 import ScaleLibrary from './components/ScaleLibrary'
 import NotesExplorer from './components/NotesExplorer'
 import SongsLibrary from './components/SongsLibrary'
+import ChordSheet from './components/ChordSheet'
 import ProgressionBoard from './components/ProgressionBoard'
 import { useProgressionStore, type BoardLine } from './store/progressionStore'
 import { useMelodyStore, type MelodyLine } from './store/melodyStore'
@@ -130,6 +131,7 @@ export default function App() {
           {tab === 'scales' && <ScaleLibrary />}
           {tab === 'notes' && <NotesExplorer />}
           {tab === 'songs' && <SongsLibrary />}
+          {tab === 'lyrics' && <ChordSheet onSendToChords={() => setTab('chords')} />}
           {tab === 'library' && (
             <Suspense fallback={null}>
               <MelodyLibrary
