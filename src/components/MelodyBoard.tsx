@@ -1,7 +1,7 @@
 import { useDroppable } from '@dnd-kit/core'
 import { useRef, useState } from 'react'
 import { playNotes } from '../lib/audio'
-import { COMMON_TIME_SIGNATURES, DURATIONS, isNoteEvent, sigLabel, type MelodyEvent, type NoteEvent } from '../lib/rhythm'
+import { COMMON_TIME_SIGNATURES, DURATIONS, isNoteEvent, sigLabel, type DurationCode, type MelodyEvent, type NoteEvent } from '../lib/rhythm'
 import { lastTimeSignature, useMelodyStore, type MelodyLine } from '../store/melodyStore'
 import ExpandToggle from './ExpandToggle'
 import StaffView, { type StaffMode } from './StaffView'
@@ -15,32 +15,63 @@ interface PlayingItem {
   instanceId: string
 }
 
+const SEGMENT_BUTTON =
+  'flex h-7 items-center justify-center rounded-md text-xs font-semibold transition-colors disabled:opacity-30'
+const SEGMENT_ACTIVE = 'bg-purple-500 text-white shadow-sm shadow-purple-900/40'
+const SEGMENT_INACTIVE = 'text-zinc-500 hover:bg-white/5 hover:text-zinc-200'
+
+function SegmentDivider() {
+  return <div className="mx-1 h-6 w-px bg-white/10" />
+}
+
+/** Simple vector note-duration glyphs — renders identically everywhere, unlike the SMuFL/Unicode
+ * music characters (𝅝 𝅗𝅥 ♩ ♪ 𝅘𝅥𝅯), which several OS/browser font combinations render as raw boxes. */
+function NoteIcon({ code, dotted = false }: { code: DurationCode; dotted?: boolean }) {
+  const hollow = code === 'w' || code === 'h'
+  const hasStem = code !== 'w'
+  const flagCount = code === '16' ? 2 : code === '8' ? 1 : 0
+  return (
+    <svg viewBox="0 0 14 22" className="h-5 w-3.5" xmlns="http://www.w3.org/2000/svg">
+      <g transform="translate(5 17.5) rotate(-16)">
+        <ellipse rx="3.1" ry="2.2" fill={hollow ? 'none' : 'currentColor'} stroke="currentColor" strokeWidth={hollow ? 1.4 : 0} />
+      </g>
+      {hasStem && <line x1="7.9" y1="17" x2="7.9" y2="2.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />}
+      {flagCount >= 1 && (
+        <path d="M7.9 2.5 C10.8 4 11.2 7.2 8.6 9.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" fill="none" />
+      )}
+      {flagCount >= 2 && (
+        <path d="M7.9 6.8 C10.8 8.3 11.2 11.5 8.6 13.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" fill="none" />
+      )}
+      {dotted && <circle cx="11.3" cy="17.8" r="1" fill="currentColor" />}
+    </svg>
+  )
+}
+
 function RhythmPalette() {
   const { inputDuration, inputDotted, setInputDuration, toggleInputDotted } = useMelodyStore()
   return (
-    <div className="flex items-center gap-0.5 rounded-md border border-white/10 p-0.5">
+    <div className="flex items-center gap-0.5 rounded-lg border border-white/10 bg-white/[0.03] p-1">
       {DURATIONS.map((d) => (
         <button
           key={d.code}
           type="button"
           onClick={() => setInputDuration(d.code)}
           title={d.label}
-          className={`rounded px-1.5 py-0.5 text-sm leading-none transition-colors ${
-            inputDuration === d.code ? 'bg-purple-500/20 text-purple-300' : 'text-zinc-500 hover:text-zinc-300'
-          }`}
+          aria-pressed={inputDuration === d.code}
+          className={`${SEGMENT_BUTTON} w-7 ${inputDuration === d.code ? SEGMENT_ACTIVE : SEGMENT_INACTIVE}`}
         >
-          {d.symbol}
+          <NoteIcon code={d.code} />
         </button>
       ))}
+      <SegmentDivider />
       <button
         type="button"
         onClick={toggleInputDotted}
         title="Dotted"
-        className={`rounded px-1.5 py-0.5 text-sm font-bold leading-none transition-colors ${
-          inputDotted ? 'bg-purple-500/20 text-purple-300' : 'text-zinc-500 hover:text-zinc-300'
-        }`}
+        aria-pressed={inputDotted}
+        className={`${SEGMENT_BUTTON} w-7 ${inputDotted ? SEGMENT_ACTIVE : SEGMENT_INACTIVE}`}
       >
-        •
+        <NoteIcon code="q" dotted />
       </button>
     </div>
   )
@@ -211,26 +242,25 @@ export default function MelodyBoard() {
   return (
     <div className="border-t border-white/10 bg-[#14151b]">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 pt-2">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">Melody</h2>
           <ExpandToggle expanded={!collapsed} onClick={() => setCollapsed((c) => !c)} />
+          <SegmentDivider />
           <RhythmPalette />
-          <div className="flex items-center gap-0.5 rounded-md border border-white/10 p-0.5">
+          <div className="flex items-center gap-0.5 rounded-lg border border-white/10 bg-white/[0.03] p-1">
             <button
               type="button"
               onClick={() => setViewMode('staff')}
-              className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
-                viewMode === 'staff' ? 'bg-purple-500/20 text-purple-300' : 'text-zinc-500 hover:text-zinc-300'
-              }`}
+              aria-pressed={viewMode === 'staff'}
+              className={`${SEGMENT_BUTTON} px-3 ${viewMode === 'staff' ? SEGMENT_ACTIVE : SEGMENT_INACTIVE}`}
             >
               Staff
             </button>
             <button
               type="button"
               onClick={() => setViewMode('tab')}
-              className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
-                viewMode === 'tab' ? 'bg-purple-500/20 text-purple-300' : 'text-zinc-500 hover:text-zinc-300'
-              }`}
+              aria-pressed={viewMode === 'tab'}
+              className={`${SEGMENT_BUTTON} px-3 ${viewMode === 'tab' ? SEGMENT_ACTIVE : SEGMENT_INACTIVE}`}
             >
               Tab
             </button>
