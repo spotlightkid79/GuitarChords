@@ -27,14 +27,18 @@ function formatDate(ts: number) {
   return new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
+type ChordDisplay = 'shape' | 'name'
+
 function SongCard({
   song,
   expanded,
   onToggleExpanded,
+  chordDisplay,
 }: {
   song: SavedSong
   expanded: boolean
   onToggleExpanded: () => void
+  chordDisplay: ChordDisplay
 }) {
   const { activeSongId, deleteSong, renameSong } = useSongsStore()
   const [editing, setEditing] = useState(false)
@@ -247,7 +251,7 @@ function SongCard({
               <div className="text-xs font-semibold text-zinc-400">{line.name}</div>
               {line.items.length === 0 ? (
                 <p className="text-xs text-zinc-600">No chords in this line</p>
-              ) : (
+              ) : chordDisplay === 'shape' ? (
                 <div className="flex flex-wrap gap-3">
                   {line.items.map((item) => {
                     const chord = chordById.get(item.chordId)
@@ -260,6 +264,27 @@ function SongCard({
                         className="text-left"
                       >
                         <CardBody chord={chord} playing={item.instanceId === playingInstanceId} />
+                      </button>
+                    ) : null
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {line.items.map((item) => {
+                    const chord = chordById.get(item.chordId)
+                    const playing = item.instanceId === playingInstanceId
+                    return chord ? (
+                      <button
+                        key={item.instanceId}
+                        type="button"
+                        data-instance-id={item.instanceId}
+                        onClick={() => playChord(chord)}
+                        title={chord.qualityName}
+                        className={`rounded px-2 py-1 text-sm font-semibold transition-colors ${
+                          playing ? 'bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/60' : 'bg-white/10 text-zinc-200 hover:bg-white/20'
+                        }`}
+                      >
+                        {chord.label}
                       </button>
                     ) : null
                   })}
@@ -278,6 +303,7 @@ export default function SongsLibrary() {
   const songs = useSongsStore((s) => s.songs)
   const saveAsNew = useSongsStore((s) => s.saveAsNew)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  const [chordDisplay, setChordDisplay] = useState<ChordDisplay>('shape')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -343,6 +369,25 @@ export default function SongsLibrary() {
           <h2 className="text-lg font-semibold text-zinc-100">Your songs</h2>
         </div>
         <div className="flex items-center gap-3 text-xs text-zinc-500">
+          <div className="flex items-center gap-0.5 rounded-lg border border-white/10 bg-white/[0.03] p-1">
+            {(
+              [
+                ['shape', 'Shape'],
+                ['name', 'Name'],
+              ] as [ChordDisplay, string][]
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setChordDisplay(value)}
+                className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
+                  chordDisplay === value ? 'bg-purple-500 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           <button type="button" onClick={() => downloadAllSongs(songs)} className="hover:text-zinc-300">
             Export all
           </button>
@@ -356,6 +401,7 @@ export default function SongsLibrary() {
             song={song}
             expanded={expandedIds.has(song.id)}
             onToggleExpanded={() => toggleOne(song.id)}
+            chordDisplay={chordDisplay}
           />
         ))}
       </div>
