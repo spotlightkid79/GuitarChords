@@ -197,9 +197,9 @@ function SongCard({
         <div className="flex items-center gap-1" title="Playback speed">
           <input
             type="range"
-            min="0.5"
-            max="3"
-            step="0.25"
+            min="0.1"
+            max="5"
+            step="0.1"
             value={speed}
             onChange={(e) => setSpeed(Number(e.target.value))}
             disabled={isPlaying}
@@ -210,9 +210,9 @@ function SongCard({
         <div className="flex items-center gap-1" title="Sustain — how long each chord rings, independent of tempo">
           <input
             type="range"
-            min="0.25"
-            max="3"
-            step="0.25"
+            min="0.1"
+            max="5"
+            step="0.1"
             value={sustain}
             onChange={(e) => setSustain(Number(e.target.value))}
             disabled={isPlaying}
