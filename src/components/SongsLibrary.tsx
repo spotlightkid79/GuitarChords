@@ -55,6 +55,10 @@ function SongCard({
   const isActive = activeSongId === song.id
   const chordCount = countChords(song)
   const preview = song.lines.flatMap((l) => l.items)
+  const currentLine = playingInstanceId
+    ? song.lines.find((l) => l.items.some((i) => i.instanceId === playingInstanceId))
+    : null
+  const hasAnyLyrics = song.lines.some((l) => l.lyrics)
 
   function handleDelete() {
     if (!window.confirm(`Delete "${song.name}"? This can't be undone.`)) return
@@ -223,80 +227,103 @@ function SongCard({
       </div>
       <div className="text-[11px] text-zinc-600">Updated {formatDate(song.updatedAt)}</div>
 
-      {!expanded && preview.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {preview.slice(0, 8).map((item) => {
-            const chord = chordById.get(item.chordId)
-            const playing = item.instanceId === playingInstanceId
-            return chord ? (
-              <span
-                key={item.instanceId}
-                data-instance-id={item.instanceId}
-                className={`rounded px-1.5 py-0.5 text-[10px] transition-colors ${
-                  playing ? 'bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/60' : 'bg-white/10 text-zinc-300'
-                }`}
-              >
-                {chord.label}
-              </span>
-            ) : null
-          })}
-          {preview.length > 8 && <span className="text-[10px] text-zinc-600">+{preview.length - 8} more</span>}
+      {isPlaying ? (
+        <div className="mt-1 flex flex-col gap-3 rounded-lg border border-amber-400/30 bg-amber-400/5 p-3">
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
+            {preview.map((item) => {
+              const chord = chordById.get(item.chordId)
+              const playing = item.instanceId === playingInstanceId
+              return chord ? (
+                <span
+                  key={item.instanceId}
+                  data-instance-id={item.instanceId}
+                  className={`shrink-0 rounded px-2 py-1 text-sm font-semibold transition-colors ${
+                    playing ? 'bg-amber-400 text-zinc-900' : 'bg-white/10 text-zinc-400'
+                  }`}
+                >
+                  {chord.label}
+                </span>
+              ) : null
+            })}
+          </div>
+          {hasAnyLyrics && (
+            <p className="min-h-[1.75rem] text-center text-base font-medium text-amber-200">
+              {currentLine?.lyrics || ' '}
+            </p>
+          )}
         </div>
-      )}
-
-      {expanded && (
-        <div className="mt-1 flex flex-col gap-4 border-t border-white/10 pt-3">
-          {song.lines.map((line) => (
-            <div key={line.id} className="flex flex-col gap-2">
-              <div className="text-xs font-semibold text-zinc-400">{line.name}</div>
-              {line.items.length === 0 ? (
-                <p className="text-xs text-zinc-600">No chords in this line</p>
-              ) : chordDisplay === 'shape' ? (
-                <div className="flex flex-wrap gap-3">
-                  {line.items.map((item) => {
-                    const chord = chordById.get(item.chordId)
-                    return chord ? (
-                      <button
-                        key={item.instanceId}
-                        type="button"
-                        data-instance-id={item.instanceId}
-                        onClick={() => playChord(chord)}
-                        className="text-left"
-                      >
-                        <CardBody chord={chord} playing={item.instanceId === playingInstanceId} />
-                      </button>
-                    ) : null
-                  })}
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {line.items.map((item) => {
-                    const chord = chordById.get(item.chordId)
-                    const playing = item.instanceId === playingInstanceId
-                    return chord ? (
-                      <div key={item.instanceId} className="group/chord relative">
-                        <button
-                          type="button"
-                          data-instance-id={item.instanceId}
-                          onClick={() => playChord(chord)}
-                          className={`rounded px-2 py-1 text-sm font-semibold transition-colors ${
-                            playing ? 'bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/60' : 'bg-white/10 text-zinc-200 hover:bg-white/20'
-                          }`}
-                        >
-                          {chord.label}
-                        </button>
-                        <div className="pointer-events-none absolute bottom-full left-full z-20 mb-1 ml-1 rounded-lg bg-[#14151b] opacity-0 shadow-xl ring-1 ring-white/10 transition-opacity delay-150 group-hover/chord:opacity-100">
-                          <CardBody chord={chord} />
-                        </div>
-                      </div>
-                    ) : null
-                  })}
-                </div>
-              )}
-              {line.lyrics && <p className="text-xs italic text-zinc-500">{line.lyrics}</p>}
+      ) : (
+        <>
+          {!expanded && preview.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {preview.slice(0, 8).map((item) => {
+                const chord = chordById.get(item.chordId)
+                return chord ? (
+                  <span
+                    key={item.instanceId}
+                    data-instance-id={item.instanceId}
+                    className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-zinc-300 transition-colors"
+                  >
+                    {chord.label}
+                  </span>
+                ) : null
+              })}
+              {preview.length > 8 && <span className="text-[10px] text-zinc-600">+{preview.length - 8} more</span>}
             </div>
-          ))}
-        </div>
+          )}
+
+          {expanded && (
+            <div className="mt-1 flex flex-col gap-4 border-t border-white/10 pt-3">
+              {song.lines.map((line) => (
+                <div key={line.id} className="flex flex-col gap-2">
+                  <div className="text-xs font-semibold text-zinc-400">{line.name}</div>
+                  {line.items.length === 0 ? (
+                    <p className="text-xs text-zinc-600">No chords in this line</p>
+                  ) : chordDisplay === 'shape' ? (
+                    <div className="flex flex-wrap gap-3">
+                      {line.items.map((item) => {
+                        const chord = chordById.get(item.chordId)
+                        return chord ? (
+                          <button
+                            key={item.instanceId}
+                            type="button"
+                            data-instance-id={item.instanceId}
+                            onClick={() => playChord(chord)}
+                            className="text-left"
+                          >
+                            <CardBody chord={chord} />
+                          </button>
+                        ) : null
+                      })}
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {line.items.map((item) => {
+                        const chord = chordById.get(item.chordId)
+                        return chord ? (
+                          <div key={item.instanceId} className="group/chord relative">
+                            <button
+                              type="button"
+                              data-instance-id={item.instanceId}
+                              onClick={() => playChord(chord)}
+                              className="rounded bg-white/10 px-2 py-1 text-sm font-semibold text-zinc-200 transition-colors hover:bg-white/20"
+                            >
+                              {chord.label}
+                            </button>
+                            <div className="pointer-events-none absolute bottom-full left-full z-20 mb-1 ml-1 rounded-lg bg-[#14151b] opacity-0 shadow-xl ring-1 ring-white/10 transition-opacity delay-150 group-hover/chord:opacity-100">
+                              <CardBody chord={chord} />
+                            </div>
+                          </div>
+                        ) : null
+                      })}
+                    </div>
+                  )}
+                  {line.lyrics && <p className="text-xs italic text-zinc-500">{line.lyrics}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   )
