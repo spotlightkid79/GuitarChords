@@ -140,6 +140,7 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
   const [savedMessage, setSavedMessage] = useState<string | null>(null)
   const [preference, setPreference] = useState<VoicingPreference>('barre')
   const [includeLyrics, setIncludeLyrics] = useState(true)
+  const [fullScreenChords, setFullScreenChords] = useState(false)
 
   const stanzas = useMemo(() => extractStanzas(text), [text])
   const allRows = useMemo(() => stanzas.flatMap((s) => s.rows), [stanzas])
@@ -185,7 +186,8 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_560px]">
+    <div className={fullScreenChords ? 'flex flex-col gap-4' : 'grid grid-cols-1 gap-4 lg:grid-cols-[1fr_560px]'}>
+      {!fullScreenChords && (
       <div className="flex flex-col gap-3">
         <div>
           <h1 className="text-lg font-semibold text-zinc-100">Lyrics + Chords</h1>
@@ -289,24 +291,53 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
           ))}
         </div>
       </div>
+      )}
 
-      <div className="flex flex-col gap-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto">
-        <p className="text-xs text-zinc-500">Chords in this sheet, line by line — click any chord to hear it.</p>
+      <div
+        className={
+          fullScreenChords
+            ? 'flex flex-col gap-4'
+            : 'flex flex-col gap-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto'
+        }
+      >
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs text-zinc-500">Chords in this sheet, line by line — click any chord to hear it.</p>
+          <button
+            type="button"
+            onClick={() => setFullScreenChords((v) => !v)}
+            className="shrink-0 rounded-md border border-white/10 px-2 py-1 text-xs font-medium text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
+          >
+            {fullScreenChords ? '✕ Show sheet' : '⤢ Full screen'}
+          </button>
+        </div>
         {resolvedRows.length === 0 ? (
           <p className="text-center text-xs text-zinc-600">Paste a chord sheet on the left to see chords here.</p>
         ) : (
-          resolvedRows.map((row, i) => (
-            <div key={i} className="flex flex-col gap-1.5 border-b border-white/5 pb-4 last:border-0">
-              <div className="flex flex-wrap gap-2">
-                {row.chords.map((chord, j) => (
-                  <button key={j} type="button" onClick={() => playChord(chord)} className="text-left">
-                    <CardBody chord={chord} />
-                  </button>
-                ))}
+          <div
+            className={
+              fullScreenChords ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'flex flex-col gap-4'
+            }
+          >
+            {resolvedRows.map((row, i) => (
+              <div
+                key={i}
+                className={
+                  fullScreenChords
+                    ? 'flex flex-col gap-1.5 rounded-lg border border-white/10 bg-white/[0.02] p-3'
+                    : 'flex flex-col gap-1.5 border-b border-white/5 pb-4 last:border-0'
+                }
+              >
+                <div className="flex flex-wrap gap-2">
+                  {row.chords.map((chord, j) => (
+                    <button key={j} type="button" onClick={() => playChord(chord)} className="text-left">
+                      <CardBody chord={chord} />
+                    </button>
+                  ))}
+                </div>
+                {row.lyrics && <p className="text-xs italic text-zinc-500">{row.lyrics}</p>}
               </div>
-              {row.lyrics && <p className="text-xs italic text-zinc-500">{row.lyrics}</p>}
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
     </div>
