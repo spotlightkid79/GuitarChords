@@ -28,17 +28,20 @@ function formatDate(ts: number) {
 }
 
 type ChordDisplay = 'shape' | 'name'
+type PlayLayout = 'horizontal' | 'vertical'
 
 function SongCard({
   song,
   expanded,
   onToggleExpanded,
   chordDisplay,
+  playLayout,
 }: {
   song: SavedSong
   expanded: boolean
   onToggleExpanded: () => void
   chordDisplay: ChordDisplay
+  playLayout: PlayLayout
 }) {
   const { activeSongId, deleteSong, renameSong } = useSongsStore()
   const [editing, setEditing] = useState(false)
@@ -308,7 +311,13 @@ function SongCard({
             </p>
           )}
           {chordDisplay === 'shape' ? (
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            <div
+              className={
+                playLayout === 'horizontal'
+                  ? 'flex gap-2 overflow-x-auto pb-1'
+                  : 'flex max-h-72 flex-col gap-2 overflow-y-auto pr-1'
+              }
+            >
               {preview.map((item) => {
                 const chord = chordById.get(item.chordId)
                 return chord ? (
@@ -319,7 +328,13 @@ function SongCard({
               })}
             </div>
           ) : (
-            <div className="flex gap-1.5 overflow-x-auto pb-1">
+            <div
+              className={
+                playLayout === 'horizontal'
+                  ? 'flex gap-1.5 overflow-x-auto pb-1'
+                  : 'flex max-h-72 flex-col gap-1.5 overflow-y-auto pr-1'
+              }
+            >
               {preview.map((item) => {
                 const chord = chordById.get(item.chordId)
                 const playing = item.instanceId === playingInstanceId
@@ -327,7 +342,7 @@ function SongCard({
                   <span
                     key={item.instanceId}
                     data-instance-id={item.instanceId}
-                    className={`shrink-0 rounded px-2 py-1 text-sm font-semibold transition-colors ${
+                    className={`shrink-0 rounded px-2 py-1 text-center text-sm font-semibold transition-colors ${
                       playing ? 'bg-amber-400 text-zinc-900' : 'bg-white/10 text-zinc-400'
                     }`}
                   >
@@ -425,6 +440,7 @@ export default function SongsLibrary() {
   const saveAsNew = useSongsStore((s) => s.saveAsNew)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [chordDisplay, setChordDisplay] = useState<ChordDisplay>('shape')
+  const [playLayout, setPlayLayout] = useState<PlayLayout>('horizontal')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -509,6 +525,26 @@ export default function SongsLibrary() {
               </button>
             ))}
           </div>
+          <div className="flex items-center gap-0.5 rounded-lg border border-white/10 bg-white/[0.03] p-1">
+            {(
+              [
+                ['horizontal', '↔ Horizontal'],
+                ['vertical', '↕ Vertical'],
+              ] as [PlayLayout, string][]
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setPlayLayout(value)}
+                title="Direction chords play in while a song is playing"
+                className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
+                  playLayout === value ? 'bg-purple-500 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           <button type="button" onClick={() => downloadAllSongs(songs)} className="hover:text-zinc-300">
             Export all
           </button>
@@ -523,6 +559,7 @@ export default function SongsLibrary() {
             expanded={expandedIds.has(song.id)}
             onToggleExpanded={() => toggleOne(song.id)}
             chordDisplay={chordDisplay}
+            playLayout={playLayout}
           />
         ))}
       </div>
