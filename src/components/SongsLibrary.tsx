@@ -229,23 +229,36 @@ function SongCard({
 
       {isPlaying ? (
         <div className="mt-1 flex flex-col gap-3 rounded-lg border border-amber-400/30 bg-amber-400/5 p-3">
-          <div className="flex gap-1.5 overflow-x-auto pb-1">
-            {preview.map((item) => {
-              const chord = chordById.get(item.chordId)
-              const playing = item.instanceId === playingInstanceId
-              return chord ? (
-                <span
-                  key={item.instanceId}
-                  data-instance-id={item.instanceId}
-                  className={`shrink-0 rounded px-2 py-1 text-sm font-semibold transition-colors ${
-                    playing ? 'bg-amber-400 text-zinc-900' : 'bg-white/10 text-zinc-400'
-                  }`}
-                >
-                  {chord.label}
-                </span>
-              ) : null
-            })}
-          </div>
+          {chordDisplay === 'shape' ? (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {preview.map((item) => {
+                const chord = chordById.get(item.chordId)
+                return chord ? (
+                  <div key={item.instanceId} data-instance-id={item.instanceId} className="shrink-0">
+                    <CardBody chord={chord} playing={item.instanceId === playingInstanceId} />
+                  </div>
+                ) : null
+              })}
+            </div>
+          ) : (
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
+              {preview.map((item) => {
+                const chord = chordById.get(item.chordId)
+                const playing = item.instanceId === playingInstanceId
+                return chord ? (
+                  <span
+                    key={item.instanceId}
+                    data-instance-id={item.instanceId}
+                    className={`shrink-0 rounded px-2 py-1 text-sm font-semibold transition-colors ${
+                      playing ? 'bg-amber-400 text-zinc-900' : 'bg-white/10 text-zinc-400'
+                    }`}
+                  >
+                    {chord.label}
+                  </span>
+                ) : null
+              })}
+            </div>
+          )}
           {hasAnyLyrics && (
             <p className="min-h-[1.75rem] text-center text-base font-medium text-amber-200">
               {currentLine?.lyrics || ' '}
