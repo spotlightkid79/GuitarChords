@@ -6,6 +6,7 @@ import type { NoteName } from '../lib/music-theory'
 import { useProgressionStore, type BoardLine } from '../store/progressionStore'
 import { useSongsStore } from '../store/songsStore'
 import { CardBody } from './ChordCard'
+import ExpandToggle from './ExpandToggle'
 
 const chordCandidatesByRootQuality = new Map<string, ChordShape[]>()
 for (const chord of CHORDS) {
@@ -141,6 +142,7 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
   const [preference, setPreference] = useState<VoicingPreference>('barre')
   const [includeLyrics, setIncludeLyrics] = useState(true)
   const [fullScreenChords, setFullScreenChords] = useState(false)
+  const [pasteCollapsed, setPasteCollapsed] = useState(false)
 
   const stanzas = useMemo(() => extractStanzas(text), [text])
   const allRows = useMemo(() => stanzas.flatMap((s) => s.rows), [stanzas])
@@ -196,12 +198,31 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
             become clickable below.
           </p>
         </div>
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          spellCheck={false}
-          className="h-48 w-full resize-y rounded-lg border border-white/10 bg-white/5 p-3 font-mono text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-purple-400"
-        />
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-2">
+            <ExpandToggle expanded={!pasteCollapsed} onClick={() => setPasteCollapsed((c) => !c)} />
+            <button
+              type="button"
+              onClick={() => setPasteCollapsed((c) => !c)}
+              className="text-xs font-medium text-zinc-400 hover:text-zinc-200"
+            >
+              Paste chord sheet
+            </button>
+            {pasteCollapsed && (
+              <span className="text-xs text-zinc-600">
+                {text.split('\n').length} line{text.split('\n').length === 1 ? '' : 's'} — click to expand
+              </span>
+            )}
+          </div>
+          {!pasteCollapsed && (
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              spellCheck={false}
+              className="h-48 w-full resize-y rounded-lg border border-white/10 bg-white/5 p-3 font-mono text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-purple-400"
+            />
+          )}
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-zinc-500">Voicing:</span>
           <div className="flex items-center gap-0.5 rounded-lg border border-white/10 bg-white/[0.03] p-1">
