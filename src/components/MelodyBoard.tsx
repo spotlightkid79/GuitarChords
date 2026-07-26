@@ -21,10 +21,10 @@ interface PlayingItem {
 const SEGMENT_BUTTON =
   'flex h-7 items-center justify-center rounded-md text-xs font-semibold transition-colors disabled:opacity-30'
 const SEGMENT_ACTIVE = 'bg-purple-500 text-white shadow-sm shadow-purple-900/40'
-const SEGMENT_INACTIVE = 'text-zinc-500 hover:bg-white/5 hover:text-zinc-200'
+const SEGMENT_INACTIVE = 'text-zinc-500 hover:bg-black/5 hover:text-zinc-800 dark:hover:bg-white/5 dark:hover:text-zinc-200'
 
 function SegmentDivider() {
-  return <div className="mx-1 h-6 w-px bg-white/10" />
+  return <div className="mx-1 h-6 w-px bg-black/10 dark:bg-white/10" />
 }
 
 /** Simple vector note-duration glyphs — renders identically everywhere, unlike the SMuFL/Unicode
@@ -53,7 +53,7 @@ function NoteIcon({ code, dotted = false }: { code: DurationCode; dotted?: boole
 function RhythmPalette() {
   const { inputDuration, inputDotted, setInputDuration, toggleInputDotted } = useMelodyStore()
   return (
-    <div className="flex items-center gap-0.5 rounded-lg border border-white/10 bg-white/[0.03] p-1">
+    <div className="flex items-center gap-0.5 rounded-lg border border-black/10 bg-black/[0.02] p-1 dark:border-white/10 dark:bg-white/[0.03]">
       {DURATIONS.map((d) => (
         <button
           key={d.code}
@@ -118,7 +118,7 @@ function MelodyLineRow({
             onKeyDown={(e) => {
               if (e.key === 'Enter') e.currentTarget.blur()
             }}
-            className="w-full rounded border border-white/10 bg-white/10 px-1.5 py-0.5 text-xs text-zinc-100 focus:outline-none focus:ring-1 focus:ring-purple-400"
+            className="w-full rounded border border-black/10 bg-black/5 px-1.5 py-0.5 text-xs text-zinc-900 focus:outline-none focus:ring-1 focus:ring-purple-400 dark:border-white/10 dark:bg-white/10 dark:text-zinc-100"
           />
         ) : (
           <button
@@ -127,7 +127,7 @@ function MelodyLineRow({
               setDraftName(line.name)
               setEditing(true)
             }}
-            className="truncate text-left text-xs font-semibold text-zinc-300 hover:text-purple-300"
+            className="truncate text-left text-xs font-semibold text-zinc-700 hover:text-purple-600 dark:text-zinc-300 dark:hover:text-purple-300"
             title="Rename line"
           >
             {line.name}
@@ -140,7 +140,7 @@ function MelodyLineRow({
             if (found) addTimeSignature(line.id, found.sig)
           }}
           title="Time signature from here"
-          className="w-full rounded border border-white/10 bg-white/10 px-1 py-0.5 text-[10px] text-zinc-300 focus:outline-none focus:ring-1 focus:ring-purple-400"
+          className="w-full rounded border border-black/10 bg-black/5 px-1 py-0.5 text-[10px] text-zinc-700 focus:outline-none focus:ring-1 focus:ring-purple-400 dark:border-white/10 dark:bg-white/10 dark:text-zinc-300"
         >
           {COMMON_TIME_SIGNATURES.map((c) => (
             <option key={c.label} value={c.label}>
@@ -153,7 +153,7 @@ function MelodyLineRow({
             type="button"
             disabled={line.items.length === 0}
             onClick={onPlay}
-            className="hover:text-purple-300 disabled:opacity-30"
+            className="hover:text-purple-600 disabled:opacity-30 dark:hover:text-purple-300"
             aria-label="Play line"
             title="Play line"
           >
@@ -162,7 +162,7 @@ function MelodyLineRow({
           <button
             type="button"
             onClick={() => addRest(line.id, { duration: inputDuration, dotted: inputDotted })}
-            className="hover:text-purple-300"
+            className="hover:text-purple-600 dark:hover:text-purple-300"
             title="Add rest"
           >
             rest
@@ -171,7 +171,7 @@ function MelodyLineRow({
             type="button"
             disabled={index === 0}
             onClick={() => moveLine(line.id, -1)}
-            className="hover:text-zinc-300 disabled:opacity-30"
+            className="hover:text-zinc-700 disabled:opacity-30 dark:hover:text-zinc-300"
             aria-label="Move line up"
           >
             ↑
@@ -180,7 +180,7 @@ function MelodyLineRow({
             type="button"
             disabled={index === total - 1}
             onClick={() => moveLine(line.id, 1)}
-            className="hover:text-zinc-300 disabled:opacity-30"
+            className="hover:text-zinc-700 disabled:opacity-30 dark:hover:text-zinc-300"
             aria-label="Move line down"
           >
             ↓
@@ -194,12 +194,12 @@ function MelodyLineRow({
       <div
         ref={setNodeRef}
         data-melody-line-id={line.id}
-        className={`relative flex min-h-[5.5rem] flex-1 items-center overflow-x-auto rounded-lg border border-white/5 p-2 transition-colors ${
+        className={`relative flex min-h-[5.5rem] flex-1 items-center overflow-x-auto rounded-lg border border-black/5 p-2 transition-colors dark:border-white/5 ${
           isOver ? 'bg-purple-500/10' : ''
         }`}
       >
         {line.items.length === 0 && (
-          <p className="pointer-events-none absolute inset-x-0 bottom-1 text-center text-xs text-zinc-600">
+          <p className="pointer-events-none absolute inset-x-0 bottom-1 text-center text-xs text-zinc-500 dark:text-zinc-600">
             Drag notes here from the fretboard
           </p>
         )}
@@ -282,16 +282,20 @@ function MelodyControls() {
         onChange={(e) => setName(e.target.value)}
         onFocus={(e) => e.currentTarget.select()}
         placeholder="Melody name"
-        className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-purple-400"
+        className="rounded-md border border-black/10 bg-black/[0.03] px-2 py-1 text-xs text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-purple-400 dark:border-white/10 dark:bg-white/5 dark:text-zinc-100"
       />
       <button
         type="button"
         onClick={handleSave}
-        className="rounded-md bg-purple-500/20 px-2 py-1 text-xs font-medium text-purple-300 hover:bg-purple-500/30"
+        className="rounded-md bg-purple-500/20 px-2 py-1 text-xs font-medium text-purple-700 hover:bg-purple-500/30 dark:text-purple-300"
       >
         {activeMelody ? 'Save' : 'Save as new melody'}
       </button>
-      <button type="button" onClick={handleNew} className="text-xs text-zinc-500 hover:text-zinc-300">
+      <button
+        type="button"
+        onClick={handleNew}
+        className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+      >
         New melody
       </button>
 
@@ -300,7 +304,7 @@ function MelodyControls() {
           <select
             value={activeMelodyId ?? ''}
             onChange={(e) => handleLoad(e.target.value)}
-            className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-zinc-100"
+            className="rounded-md border border-black/10 bg-black/[0.03] px-2 py-1 text-xs text-zinc-900 dark:border-white/10 dark:bg-white/5 dark:text-zinc-100"
           >
             <option value="" disabled>
               Load a saved melody…
@@ -319,13 +323,21 @@ function MelodyControls() {
         </>
       )}
 
-      <span className="mx-1 h-4 w-px bg-white/10" aria-hidden="true" />
+      <span className="mx-1 h-4 w-px bg-black/10 dark:bg-white/10" aria-hidden="true" />
 
-      <button type="button" onClick={handleExportCurrent} className="text-xs text-zinc-500 hover:text-zinc-300">
+      <button
+        type="button"
+        onClick={handleExportCurrent}
+        className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+      >
         Export current
       </button>
       {melodies.length > 0 && (
-        <button type="button" onClick={handleExportAll} className="text-xs text-zinc-500 hover:text-zinc-300">
+        <button
+          type="button"
+          onClick={handleExportAll}
+          className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+        >
           Export all
         </button>
       )}
@@ -333,7 +345,7 @@ function MelodyControls() {
         type="button"
         onClick={() => fileInputRef.current?.click()}
         title="You can select multiple files at once"
-        className="text-xs text-zinc-500 hover:text-zinc-300"
+        className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
       >
         Import…
       </button>
@@ -372,14 +384,14 @@ export default function MelodyBoard() {
   const allSequence = lines.flatMap((l) => l.items.map((item) => ({ lineId: l.id, item })))
 
   return (
-    <div className="border-t border-white/10 bg-[#14151b]">
+    <div className="border-t border-black/10 bg-zinc-100 dark:border-white/10 dark:bg-[#14151b]">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 pt-2">
         <div className="flex items-center gap-2.5">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">Melody</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">Melody</h2>
           <ExpandToggle expanded={!collapsed} onClick={() => setCollapsed((c) => !c)} />
           <SegmentDivider />
           <RhythmPalette />
-          <div className="flex items-center gap-0.5 rounded-lg border border-white/10 bg-white/[0.03] p-1">
+          <div className="flex items-center gap-0.5 rounded-lg border border-black/10 bg-black/[0.02] p-1 dark:border-white/10 dark:bg-white/[0.03]">
             <button
               type="button"
               onClick={() => setViewMode('staff')}
@@ -403,11 +415,15 @@ export default function MelodyBoard() {
             type="button"
             disabled={allSequence.length === 0}
             onClick={() => playSequence(allSequence)}
-            className="text-xs font-medium text-purple-300 hover:text-purple-200 disabled:opacity-30"
+            className="text-xs font-medium text-purple-600 hover:text-purple-700 disabled:opacity-30 dark:text-purple-300 dark:hover:text-purple-200"
           >
             ▶ Play melody
           </button>
-          <button type="button" onClick={addLine} className="text-xs font-medium text-purple-300 hover:text-purple-200">
+          <button
+            type="button"
+            onClick={addLine}
+            className="text-xs font-medium text-purple-600 hover:text-purple-700 dark:text-purple-300 dark:hover:text-purple-200"
+          >
             + Add line
           </button>
           <button type="button" onClick={clearAll} className="text-xs text-zinc-500 hover:text-red-400">

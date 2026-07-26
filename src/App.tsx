@@ -151,7 +151,7 @@ export default function App() {
         </main>
         {tab === 'chords' && <ProgressionBoard />}
         {tab === 'notes' && (
-          <Suspense fallback={<div className="h-24 border-t border-white/10 bg-[#14151b]" />}>
+          <Suspense fallback={<div className="h-24 border-t border-black/10 bg-zinc-100 dark:border-white/10 dark:bg-[#14151b]" />}>
             <MelodyBoard />
           </Suspense>
         )}

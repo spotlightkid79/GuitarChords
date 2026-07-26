@@ -130,8 +130,7 @@ function ImportPanel({ onDone }: { onDone: () => void }) {
             ))}
           </ul>
         )}
-        {/* Always dark — StaffView draws fixed light-colored notes assuming a dark backdrop. */}
-        <div className="mt-3 rounded-md border border-white/5 bg-[#14151b] p-2">
+        <div className="mt-3 rounded-md border border-black/5 bg-zinc-100 p-2 dark:border-white/5 dark:bg-[#14151b]">
           <StaffView items={pending.lines[0]?.items ?? []} mode="staff" />
         </div>
       </div>
@@ -281,8 +280,7 @@ function LibrarySongRow({ song, onEditInNotes }: { song: LibrarySong; onEditInNo
               Tab
             </button>
           </div>
-          {/* Always dark — StaffView draws fixed light-colored notes assuming a dark backdrop. */}
-          <div className="flex flex-col gap-2 overflow-x-auto rounded-lg border border-white/5 bg-[#14151b] p-2">
+          <div className="flex flex-col gap-2 overflow-x-auto rounded-lg border border-black/5 bg-zinc-100 p-2 dark:border-white/5 dark:bg-[#14151b]">
             {song.lines.map((line) => (
               <StaffView key={line.id} items={line.items} activeInstanceId={playingInstanceId} mode={viewMode} />
             ))}

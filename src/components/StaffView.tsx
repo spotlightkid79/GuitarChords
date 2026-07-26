@@ -14,19 +14,21 @@ import {
 } from 'vexflow'
 import { midiAtFret, midiToNoteName, midiToOctave } from '../lib/music-theory'
 import { layoutMeasures, sigLabel, type LayoutPiece, type MelodyEvent } from '../lib/rhythm'
+import { useThemeStore } from '../store/themeStore'
 
 // Guitar is a transposing instrument: written notation is conventionally one octave above
 // the sounding pitch, which keeps everyday guitar range close to the staff instead of
 // needing a huge stack of ledger lines below it.
 const WRITTEN_OCTAVE_OFFSET = 12
 const ACTIVE_COLOR = '#fbbf24'
-const AUTO_REST_COLOR = '#4b4b57'
-const DEFAULT_COLOR = '#e8e8ec'
-// VexFlow gives several sub-elements (note stems, ledger lines) their own hardcoded default
-// color from its internal theme, completely independent of the drawing context's ambient
-// fill/stroke — so they render pitch-black regardless of what color the noteheads use, unless
-// explicitly overridden per element/note.
-const DEFAULT_STYLE = { fillStyle: DEFAULT_COLOR, strokeStyle: DEFAULT_COLOR }
+
+// VexFlow colors are set explicitly in code (canvas/SVG drawing, not CSS), so they need their
+// own light/dark pair here rather than a Tailwind `dark:` class.
+const PALETTE = {
+  dark: { default: '#e8e8ec', autoRest: '#4b4b57', tabRectBg: '#14151b' },
+  light: { default: '#27272a', autoRest: '#a1a1aa', tabRectBg: '#f4f4f6' },
+}
+
 const STRING_COUNT = 6
 const REST_KEY = 'b/4'
 
@@ -53,11 +55,15 @@ export default function StaffView({
   mode?: StaffMode
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const theme = useThemeStore((s) => s.theme)
 
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
     container.innerHTML = ''
+
+    const { default: DEFAULT_COLOR, autoRest: AUTO_REST_COLOR, tabRectBg: TAB_RECT_BG } = PALETTE[theme]
+    const DEFAULT_STYLE = { fillStyle: DEFAULT_COLOR, strokeStyle: DEFAULT_COLOR }
 
     const measures = layoutMeasures(items)
     const height = mode === 'tab' ? 140 : 210
@@ -142,14 +148,14 @@ export default function StaffView({
           text.setAttribute('font-family', 'system-ui, sans-serif')
           text.setAttribute('font-size', '13px')
           text.setAttribute('font-weight', '700')
-          text.setAttribute('fill', isActive ? ACTIVE_COLOR : '#e8e8ec')
+          text.setAttribute('fill', isActive ? ACTIVE_COLOR : DEFAULT_COLOR)
           if (rect) {
             const bbox = text.getBBox()
             rect.setAttribute('x', String(bbox.x - 2))
             rect.setAttribute('y', String(bbox.y - 2))
             rect.setAttribute('width', String(bbox.width + 4))
             rect.setAttribute('height', String(bbox.height + 4))
-            rect.setAttribute('fill', '#14151b')
+            rect.setAttribute('fill', TAB_RECT_BG)
           }
         })
       }
@@ -177,7 +183,7 @@ export default function StaffView({
         }
       }
     }
-  }, [items, onRemove, activeInstanceId, mode])
+  }, [items, onRemove, activeInstanceId, mode, theme])
 
   return <div ref={containerRef} className="overflow-x-auto" />
 }
