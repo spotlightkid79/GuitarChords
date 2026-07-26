@@ -109,6 +109,19 @@ function SongCard({
     }
   }
 
+  useEffect(() => {
+    if (!isPlaying) return
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.code !== 'Space') return
+      const target = e.target as HTMLElement | null
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
+      e.preventDefault()
+      handleStop()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isPlaying])
+
   return (
     <div
       className={`relative flex flex-col gap-2 rounded-lg border p-3 pl-24 ${expanded ? 'col-span-full' : ''} ${
@@ -172,7 +185,7 @@ function SongCard({
           disabled={chordCount === 0}
           onClick={handlePlay}
           aria-label={isPlaying ? 'Stop' : 'Play song'}
-          title={isPlaying ? 'Stop' : 'Play song'}
+          title={isPlaying ? 'Stop (or press Space)' : 'Play song'}
           className={`flex h-5 items-center justify-center rounded-sm border px-1.5 text-[10px] leading-none transition-colors disabled:opacity-30 ${
             isPlaying
               ? 'border-amber-400 text-amber-300 hover:border-amber-300'
