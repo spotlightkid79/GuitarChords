@@ -111,25 +111,41 @@ export function isChordLine(line: string): boolean {
   return tokens.every((t) => parseChordToken(t) !== null)
 }
 
-export interface ParsedStanza {
+/** One chord line paired with the lyric line it sits above (empty if the next line is another
+ * chord line, blank, or missing — e.g. a bare instrumental turnaround like "Bm  G  Bm  G"). */
+export interface ParsedRow {
   chords: ParsedChordToken[]
+  lyrics: string
 }
 
-/** Splits pasted text into blank-line-separated stanzas and collects each one's chords in reading order. */
+export interface ParsedStanza {
+  rows: ParsedRow[]
+}
+
+/** Splits pasted text into blank-line-separated stanzas, each holding its chord lines paired with
+ * their lyric lines in reading order — so a saved song can show lyrics alongside its chords, not
+ * just the bare chord sequence. */
 export function extractStanzas(text: string): ParsedStanza[] {
   const blocks = text.split(/\n\s*\n/)
   const stanzas: ParsedStanza[] = []
 
   for (const block of blocks) {
-    const chords: ParsedChordToken[] = []
-    for (const line of block.split('\n')) {
+    const lines = block.split('\n')
+    const rows: ParsedRow[] = []
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
       if (!isChordLine(line)) continue
-      for (const token of line.trim().split(/\s+/).filter(Boolean)) {
-        const parsed = parseChordToken(token)
-        if (parsed) chords.push(parsed)
-      }
+      const chords = line
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map(parseChordToken)
+        .filter((c): c is ParsedChordToken => c !== null)
+      const nextLine = lines[i + 1]
+      const lyrics = nextLine !== undefined && nextLine.trim().length > 0 && !isChordLine(nextLine) ? nextLine.trim() : ''
+      rows.push({ chords, lyrics })
     }
-    if (chords.length > 0) stanzas.push({ chords })
+    if (rows.length > 0) stanzas.push({ rows })
   }
 
   return stanzas

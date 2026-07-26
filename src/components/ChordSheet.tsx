@@ -153,25 +153,26 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
   const [preference, setPreference] = useState<VoicingPreference>('barre')
 
   const stanzas = useMemo(() => extractStanzas(text), [text])
-  const totalChords = useMemo(() => stanzas.reduce((n, s) => n + s.chords.length, 0), [stanzas])
+  const allRows = useMemo(() => stanzas.flatMap((s) => s.rows), [stanzas])
+  const totalChords = useMemo(() => allRows.reduce((n, r) => n + r.chords.length, 0), [allRows])
   const approximatedCount = useMemo(
-    () => stanzas.reduce((n, s) => n + s.chords.filter((c) => c.approximated).length, 0),
-    [stanzas],
+    () => allRows.reduce((n, r) => n + r.chords.filter((c) => c.approximated).length, 0),
+    [allRows],
   )
 
   function buildBoardLines(): BoardLine[] {
-    // Optimized across the whole song (not per stanza) so a voicing choice near a stanza boundary
-    // still accounts for what comes right after it in the next section.
-    const flatChords = stanzas.flatMap((s) => s.chords)
+    // Optimized across the whole song (not per row) so a voicing choice near a line boundary
+    // still accounts for what comes right after it.
+    const flatChords = allRows.flatMap((r) => r.chords)
     const chosen = pickOptimalVoicings(flatChords, preference, 0)
 
     let cursor = 0
-    return stanzas.map((stanza, i) => {
-      const items = stanza.chords
+    return allRows.map((row, i) => {
+      const items = row.chords
         .map(() => chosen[cursor++])
         .filter((c): c is ChordShape => !!c)
         .map((c) => ({ instanceId: crypto.randomUUID(), chordId: c.id }))
-      return { id: crypto.randomUUID(), name: `Line ${i + 1}`, items }
+      return { id: crypto.randomUUID(), name: `Line ${i + 1}`, items, lyrics: row.lyrics || undefined }
     })
   }
 

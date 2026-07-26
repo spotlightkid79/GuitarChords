@@ -265,6 +265,7 @@ function SongCard({
                   })}
                 </div>
               )}
+              {line.lyrics && <p className="text-xs italic text-zinc-500">{line.lyrics}</p>}
             </div>
           ))}
         </div>

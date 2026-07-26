@@ -10,6 +10,9 @@ export interface BoardLine {
   id: string
   name: string
   items: BoardItem[]
+  /** The original lyric text this line's chords go with — set when a line comes from the Lyrics
+   * tab's parser, absent for lines built by hand on the board. */
+  lyrics?: string
 }
 
 interface ProgressionState {

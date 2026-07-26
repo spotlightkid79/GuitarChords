@@ -104,29 +104,32 @@ function ProgressionLineRow({
       <div
         ref={setNodeRef}
         data-line-id={line.id}
-        className={`flex min-h-[9.5rem] flex-1 flex-wrap items-start gap-3 rounded-lg border border-white/5 p-3 transition-colors ${
+        className={`flex min-h-[9.5rem] flex-1 flex-col gap-2 rounded-lg border border-white/5 p-3 transition-colors ${
           isOver ? 'bg-purple-500/10' : ''
         }`}
       >
-        {line.items.length === 0 ? (
-          <p className="m-auto text-xs text-zinc-600">Drop chords here</p>
-        ) : (
-          <SortableContext items={line.items.map((i) => i.instanceId)} strategy={horizontalListSortingStrategy}>
-            {line.items.map((item) => {
-              const chord = chordById.get(item.chordId)
-              if (!chord) return null
-              return (
-                <BoardChordCard
-                  key={item.instanceId}
-                  instanceId={item.instanceId}
-                  chord={chord}
-                  onRemove={() => removeItem(line.id, item.instanceId)}
-                  playing={item.instanceId === playingInstanceId}
-                />
-              )
-            })}
-          </SortableContext>
-        )}
+        <div className="flex flex-1 flex-wrap items-start gap-3">
+          {line.items.length === 0 ? (
+            <p className="m-auto text-xs text-zinc-600">Drop chords here</p>
+          ) : (
+            <SortableContext items={line.items.map((i) => i.instanceId)} strategy={horizontalListSortingStrategy}>
+              {line.items.map((item) => {
+                const chord = chordById.get(item.chordId)
+                if (!chord) return null
+                return (
+                  <BoardChordCard
+                    key={item.instanceId}
+                    instanceId={item.instanceId}
+                    chord={chord}
+                    onRemove={() => removeItem(line.id, item.instanceId)}
+                    playing={item.instanceId === playingInstanceId}
+                  />
+                )
+              })}
+            </SortableContext>
+          )}
+        </div>
+        {line.lyrics && <p className="border-t border-white/5 pt-2 text-xs italic text-zinc-500">{line.lyrics}</p>}
       </div>
     </div>
   )
