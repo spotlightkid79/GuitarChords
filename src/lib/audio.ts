@@ -128,12 +128,14 @@ export interface ChordSequenceHandle {
  * to speed up or slow down the transition between chords, and/or `{ sustain }` (a multiplier on
  * chordDuration, default 1) to stretch out or shorten how long each chord actually rings —
  * independent of the tempo, so a sustain above 1 lets a chord's sound bleed into the next one
- * (a legato/pad feel) without changing how fast the chords change.
+ * (a legato/pad feel) without changing how fast the chords change. `{ startIndex }` begins
+ * playback partway through the overall sequence (counting every chord across every repeat, not
+ * just within one pass) — used to resume from where a paused playback left off.
  */
 export function playChordSequence(
   chords: ChordShape[],
   onChordStart?: (chord: ChordShape, index: number) => void,
-  options?: { loop?: boolean; repeatCount?: number; chordDuration?: number; sustain?: number },
+  options?: { loop?: boolean; repeatCount?: number; chordDuration?: number; sustain?: number; startIndex?: number },
 ): ChordSequenceHandle {
   const chordDuration = options?.chordDuration ?? DEFAULT_CHORD_DURATION
   const noteDuration = chordDuration * (options?.sustain ?? 1)
@@ -142,35 +144,44 @@ export function playChordSequence(
 
   const ctx = getAudioContext()
   const repeatCount = options?.loop ? Infinity : Math.max(1, options?.repeatCount ?? 1)
+  const startTotalIndex = Math.max(0, options?.startIndex ?? 0)
+  const startPassIndex = Math.floor(startTotalIndex / chords.length)
+  const startChordIndex = startTotalIndex % chords.length
 
   let stopped = false
   const activeOscillators: OscillatorNode[] = []
   const pendingTimeouts: number[] = []
 
-  function schedulePass(passIndex: number) {
+  function schedulePass(passIndex: number, fromChordIndex: number) {
     if (stopped || passIndex >= repeatCount) return
     void ensureRunning(ctx).then(() => {
       if (stopped) return
       let time = ctx.currentTime + SCHEDULE_LEAD_IN
+      let scheduledCount = 0
       chords.forEach((chord, i) => {
+        if (i < fromChordIndex) return
         activeOscillators.push(...scheduleChord(ctx, chord, time, noteDuration))
         if (onChordStart) {
           const id = window.setTimeout(
             () => {
               if (!stopped) onChordStart(chord, i)
             },
-            (SCHEDULE_LEAD_IN + i * chordDuration) * 1000,
+            (SCHEDULE_LEAD_IN + scheduledCount * chordDuration) * 1000,
           )
           pendingTimeouts.push(id)
         }
         time += chordDuration
+        scheduledCount += 1
       })
-      const nextPassId = window.setTimeout(() => schedulePass(passIndex + 1), loopDuration * 1000)
+      const nextPassId = window.setTimeout(
+        () => schedulePass(passIndex + 1, 0),
+        scheduledCount * chordDuration * 1000,
+      )
       pendingTimeouts.push(nextPassId)
     })
   }
 
-  schedulePass(0)
+  schedulePass(startPassIndex, startChordIndex)
 
   function stop() {
     stopped = true

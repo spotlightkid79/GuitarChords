@@ -45,11 +45,13 @@ function SongCard({
   const [draftName, setDraftName] = useState(song.name)
   const [playingInstanceId, setPlayingInstanceId] = useState<string | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [isPaused, setIsPaused] = useState(false)
   const [loopSetting, setLoopSetting] = useState('1')
   const [speed, setSpeed] = useState(1)
   const [sustain, setSustain] = useState(1)
   const playbackTokenRef = useRef(0)
   const playbackHandleRef = useRef<ChordSequenceHandle | null>(null)
+  const pausePositionRef = useRef(0)
   useScrollPlayingIntoView(playingInstanceId)
   useEffect(() => () => playbackHandleRef.current?.stop(), [])
   const isActive = activeSongId === song.id
@@ -70,14 +72,14 @@ function SongCard({
     playbackHandleRef.current = null
     playbackTokenRef.current++
     setIsPlaying(false)
+    setIsPaused(false)
     setPlayingInstanceId(null)
+    pausePositionRef.current = 0
   }
 
-  function handlePlay() {
-    if (isPlaying) {
-      handleStop()
-      return
-    }
+  /** Starts (or resumes, via `resumeFromIndex`) playback. `resumeFromIndex` counts every chord
+   * across every repeat, not just within one pass — see `playChordSequence`'s `startIndex`. */
+  function startPlayback(resumeFromIndex: number) {
     const withChords = preview
       .map((item) => ({ item, chord: chordById.get(item.chordId) }))
       .filter((x): x is { item: BoardItem; chord: ChordShape } => !!x.chord)
@@ -86,27 +88,52 @@ function SongCard({
     const loop = loopSetting === 'infinite'
     const repeatCount = Number(loopSetting) || 1
     const chordDuration = DEFAULT_CHORD_DURATION / speed
+    let flatIndex = resumeFromIndex
     const handle = playChordSequence(
       withChords.map((x) => x.chord),
       (_chord, i) => {
         if (playbackTokenRef.current !== token) return
         setPlayingInstanceId(withChords[i].item.instanceId)
+        pausePositionRef.current = flatIndex
+        flatIndex += 1
       },
-      loop ? { loop: true, chordDuration, sustain } : { repeatCount, chordDuration, sustain },
+      loop
+        ? { loop: true, chordDuration, sustain, startIndex: resumeFromIndex }
+        : { repeatCount, chordDuration, sustain, startIndex: resumeFromIndex },
     )
     playbackHandleRef.current = handle
     setIsPlaying(true)
+    setIsPaused(false)
     if (!loop) {
+      const remaining = Math.max(0, handle.loopDuration * repeatCount - resumeFromIndex * chordDuration)
       window.setTimeout(
         () => {
           if (playbackTokenRef.current !== token) return
           setIsPlaying(false)
+          setIsPaused(false)
           setPlayingInstanceId(null)
           playbackHandleRef.current = null
+          pausePositionRef.current = 0
         },
-        handle.loopDuration * repeatCount * 1000,
+        remaining * 1000,
       )
     }
+  }
+
+  function handlePlay() {
+    if (isPlaying) {
+      handleStop()
+      return
+    }
+    startPlayback(0)
+  }
+
+  /** Silences playback but remembers where it was, so Space can pick back up from there. */
+  function handlePause() {
+    playbackHandleRef.current?.stop()
+    playbackHandleRef.current = null
+    playbackTokenRef.current++
+    setIsPaused(true)
   }
 
   useEffect(() => {
@@ -116,11 +143,15 @@ function SongCard({
       const target = e.target as HTMLElement | null
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
       e.preventDefault()
-      handleStop()
+      if (isPaused) {
+        startPlayback(pausePositionRef.current)
+      } else {
+        handlePause()
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isPlaying])
+  }, [isPlaying, isPaused])
 
   return (
     <div
@@ -185,14 +216,14 @@ function SongCard({
           disabled={chordCount === 0}
           onClick={handlePlay}
           aria-label={isPlaying ? 'Stop' : 'Play song'}
-          title={isPlaying ? 'Stop (or press Space)' : 'Play song'}
+          title={isPlaying ? (isPaused ? 'Stop (Space to resume)' : 'Stop (Space to pause)') : 'Play song'}
           className={`flex h-5 items-center justify-center rounded-sm border px-1.5 text-[10px] leading-none transition-colors disabled:opacity-30 ${
             isPlaying
               ? 'border-amber-400 text-amber-300 hover:border-amber-300'
               : 'border-zinc-500 text-zinc-400 hover:border-zinc-300 hover:text-zinc-200'
           }`}
         >
-          {isPlaying ? '■ Stop' : '▶ Play'}
+          {isPlaying ? (isPaused ? '❙❙ Paused' : '■ Stop') : '▶ Play'}
         </button>
         <select
           value={loopSetting}
@@ -241,7 +272,14 @@ function SongCard({
       <div className="text-[11px] text-zinc-600">Updated {formatDate(song.updatedAt)}</div>
 
       {isPlaying ? (
-        <div className="mt-1 flex flex-col gap-3 rounded-lg border border-amber-400/30 bg-amber-400/5 p-3">
+        <div
+          className={`mt-1 flex flex-col gap-3 rounded-lg border p-3 ${
+            isPaused ? 'border-zinc-500/40 bg-white/[0.03]' : 'border-amber-400/30 bg-amber-400/5'
+          }`}
+        >
+          {isPaused && (
+            <p className="text-center text-[11px] font-medium text-zinc-400">❙❙ Paused — press Space to resume</p>
+          )}
           {chordDisplay === 'shape' ? (
             <div className="flex gap-2 overflow-x-auto pb-1">
               {preview.map((item) => {
