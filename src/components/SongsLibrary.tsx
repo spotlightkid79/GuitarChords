@@ -274,18 +274,22 @@ function SongCard({
                     const chord = chordById.get(item.chordId)
                     const playing = item.instanceId === playingInstanceId
                     return chord ? (
-                      <button
-                        key={item.instanceId}
-                        type="button"
-                        data-instance-id={item.instanceId}
-                        onClick={() => playChord(chord)}
-                        title={chord.qualityName}
-                        className={`rounded px-2 py-1 text-sm font-semibold transition-colors ${
-                          playing ? 'bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/60' : 'bg-white/10 text-zinc-200 hover:bg-white/20'
-                        }`}
-                      >
-                        {chord.label}
-                      </button>
+                      <div key={item.instanceId} className="group/chord relative">
+                        <button
+                          type="button"
+                          data-instance-id={item.instanceId}
+                          onClick={() => playChord(chord)}
+                          title={chord.qualityName}
+                          className={`rounded px-2 py-1 text-sm font-semibold transition-colors ${
+                            playing ? 'bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/60' : 'bg-white/10 text-zinc-200 hover:bg-white/20'
+                          }`}
+                        >
+                          {chord.label}
+                        </button>
+                        <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 opacity-0 transition-opacity delay-150 group-hover/chord:opacity-100">
+                          <CardBody chord={chord} />
+                        </div>
+                      </div>
                     ) : null
                   })}
                 </div>
