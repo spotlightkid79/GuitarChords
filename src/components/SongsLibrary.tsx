@@ -350,7 +350,9 @@ function SongCard({
               ❙❙ Paused — press Space to resume, ←/→ to skip chords
             </p>
           )}
-          {chordDisplay === 'shape' ? (
+          {/* Collapsed cards are too narrow to read shape diagrams while scrolling through a whole
+              song, so playback always falls back to names there regardless of the Shape/Name toggle. */}
+          {(expanded ? chordDisplay : 'name') === 'shape' ? (
             <div
               className={
                 playLayout === 'horizontal'
