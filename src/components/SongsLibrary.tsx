@@ -279,7 +279,6 @@ function SongCard({
                           type="button"
                           data-instance-id={item.instanceId}
                           onClick={() => playChord(chord)}
-                          title={chord.qualityName}
                           className={`rounded px-2 py-1 text-sm font-semibold transition-colors ${
                             playing ? 'bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/60' : 'bg-white/10 text-zinc-200 hover:bg-white/20'
                           }`}
