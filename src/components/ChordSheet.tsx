@@ -151,6 +151,7 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
   const [songName, setSongName] = useState('Untitled Song')
   const [savedMessage, setSavedMessage] = useState<string | null>(null)
   const [preference, setPreference] = useState<VoicingPreference>('barre')
+  const [includeLyrics, setIncludeLyrics] = useState(true)
 
   const stanzas = useMemo(() => extractStanzas(text), [text])
   const allRows = useMemo(() => stanzas.flatMap((s) => s.rows), [stanzas])
@@ -172,7 +173,7 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
         .map(() => chosen[cursor++])
         .filter((c): c is ChordShape => !!c)
         .map((c) => ({ instanceId: crypto.randomUUID(), chordId: c.id }))
-      return { id: crypto.randomUUID(), name: `Line ${i + 1}`, items, lyrics: row.lyrics || undefined }
+      return { id: crypto.randomUUID(), name: `Line ${i + 1}`, items, lyrics: includeLyrics ? row.lyrics || undefined : undefined }
     })
   }
 
@@ -220,6 +221,26 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
                 onClick={() => setPreference(value)}
                 className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
                   preference === value ? 'bg-purple-500 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <span className="ml-2 text-xs text-zinc-500">Save:</span>
+          <div className="flex items-center gap-0.5 rounded-lg border border-white/10 bg-white/[0.03] p-1">
+            {(
+              [
+                [true, 'With lyrics'],
+                [false, 'Without lyrics'],
+              ] as [boolean, string][]
+            ).map(([value, label]) => (
+              <button
+                key={String(value)}
+                type="button"
+                onClick={() => setIncludeLyrics(value)}
+                className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
+                  includeLyrics === value ? 'bg-purple-500 text-white' : 'text-zinc-500 hover:text-zinc-300'
                 }`}
               >
                 {label}
