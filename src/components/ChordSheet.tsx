@@ -99,15 +99,7 @@ Gitsem nereye kadar kalsam neye yarar
 Em
 Hiç anlatamadım, hiç anlamadılar`
 
-function ChordSheetLine({
-  line,
-  preference,
-  onSelect,
-}: {
-  line: string
-  preference: VoicingPreference
-  onSelect: (chord: ChordShape) => void
-}) {
+function ChordSheetLine({ line, preference }: { line: string; preference: VoicingPreference }) {
   if (line.trim().length === 0) return <div className="h-5" />
   if (!isChordLine(line)) {
     return <div className="whitespace-pre text-zinc-300">{line}</div>
@@ -126,10 +118,7 @@ function ChordSheetLine({
         <button
           key={start}
           type="button"
-          onClick={() => {
-            playChord(chord)
-            onSelect(chord)
-          }}
+          onClick={() => playChord(chord)}
           className="font-bold text-purple-400 hover:text-purple-300 hover:underline"
         >
           {token}
@@ -147,7 +136,6 @@ function ChordSheetLine({
 
 export default function ChordSheet({ onSendToChords }: { onSendToChords: () => void }) {
   const [text, setText] = useState(PLACEHOLDER)
-  const [selected, setSelected] = useState<ChordShape | null>(null)
   const [songName, setSongName] = useState('Untitled Song')
   const [savedMessage, setSavedMessage] = useState<string | null>(null)
   const [preference, setPreference] = useState<VoicingPreference>('barre')
@@ -161,20 +149,27 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
     [allRows],
   )
 
-  function buildBoardLines(): BoardLine[] {
-    // Optimized across the whole song (not per row) so a voicing choice near a line boundary
-    // still accounts for what comes right after it.
+  // The actual voicing chosen per chord, shared by the always-visible reference panel and
+  // buildBoardLines() below — so what you see on the right is exactly what gets saved.
+  // Optimized across the whole song (not per row) so a choice near a line boundary still
+  // accounts for what comes right after it.
+  const resolvedRows = useMemo(() => {
     const flatChords = allRows.flatMap((r) => r.chords)
     const chosen = pickOptimalVoicings(flatChords, preference, 0)
-
     let cursor = 0
-    return allRows.map((row, i) => {
-      const items = row.chords
-        .map(() => chosen[cursor++])
-        .filter((c): c is ChordShape => !!c)
-        .map((c) => ({ instanceId: crypto.randomUUID(), chordId: c.id }))
-      return { id: crypto.randomUUID(), name: `Line ${i + 1}`, items, lyrics: includeLyrics ? row.lyrics || undefined : undefined }
-    })
+    return allRows.map((row) => ({
+      chords: row.chords.map(() => chosen[cursor++]).filter((c): c is ChordShape => !!c),
+      lyrics: row.lyrics,
+    }))
+  }, [allRows, preference])
+
+  function buildBoardLines(): BoardLine[] {
+    return resolvedRows.map((row, i) => ({
+      id: crypto.randomUUID(),
+      name: `Line ${i + 1}`,
+      items: row.chords.map((c) => ({ instanceId: crypto.randomUUID(), chordId: c.id })),
+      lyrics: includeLyrics ? row.lyrics || undefined : undefined,
+    }))
   }
 
   function handleSendToChords() {
@@ -190,7 +185,7 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_560px]">
       <div className="flex flex-col gap-3">
         <div>
           <h1 className="text-lg font-semibold text-zinc-100">Lyrics + Chords</h1>
@@ -290,19 +285,28 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
 
         <div className="rounded-lg border border-white/10 bg-[#14151b] p-4 font-mono text-sm leading-6">
           {text.split('\n').map((line, i) => (
-            <ChordSheetLine key={i} line={line} preference={preference} onSelect={setSelected} />
+            <ChordSheetLine key={i} line={line} preference={preference} />
           ))}
         </div>
       </div>
 
-      <div className="lg:sticky lg:top-4 lg:self-start">
-        {selected ? (
-          <div className="flex flex-col items-center gap-2">
-            <CardBody chord={selected} />
-            <p className="text-center text-xs text-zinc-500">Click any chord in the sheet to preview and hear it.</p>
-          </div>
+      <div className="flex flex-col gap-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto">
+        <p className="text-xs text-zinc-500">Chords in this sheet, line by line — click any chord to hear it.</p>
+        {resolvedRows.length === 0 ? (
+          <p className="text-center text-xs text-zinc-600">Paste a chord sheet on the left to see chords here.</p>
         ) : (
-          <p className="text-center text-xs text-zinc-500">Click any chord in the sheet to preview and hear it.</p>
+          resolvedRows.map((row, i) => (
+            <div key={i} className="flex flex-col gap-1.5 border-b border-white/5 pb-4 last:border-0">
+              <div className="flex flex-wrap gap-2">
+                {row.chords.map((chord, j) => (
+                  <button key={j} type="button" onClick={() => playChord(chord)} className="text-left">
+                    <CardBody chord={chord} />
+                  </button>
+                ))}
+              </div>
+              {row.lyrics && <p className="text-xs italic text-zinc-500">{row.lyrics}</p>}
+            </div>
+          ))
         )}
       </div>
     </div>
