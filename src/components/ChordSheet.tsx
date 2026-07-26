@@ -103,7 +103,7 @@ Hiç anlatamadım, hiç anlamadılar`
 function ChordSheetLine({ line, preference }: { line: string; preference: VoicingPreference }) {
   if (line.trim().length === 0) return <div className="h-5" />
   if (!isChordLine(line)) {
-    return <div className="whitespace-pre text-zinc-300">{line}</div>
+    return <div className="whitespace-pre text-zinc-700 dark:text-zinc-300">{line}</div>
   }
 
   const nodes: React.ReactNode[] = []
@@ -120,7 +120,7 @@ function ChordSheetLine({ line, preference }: { line: string; preference: Voicin
           key={start}
           type="button"
           onClick={() => playChord(chord)}
-          className="font-bold text-purple-400 hover:text-purple-300 hover:underline"
+          className="font-bold text-purple-600 hover:text-purple-700 hover:underline dark:text-purple-400 dark:hover:text-purple-300"
         >
           {token}
         </button>,
@@ -192,7 +192,7 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
       {!fullScreenChords && (
       <div className="flex flex-col gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-zinc-100">Lyrics + Chords</h1>
+          <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Lyrics + Chords</h1>
           <p className="text-sm text-zinc-500">
             Paste a chord sheet from the internet (chords on their own line above the lyrics) — recognized chords
             become clickable below.
@@ -204,12 +204,12 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
             <button
               type="button"
               onClick={() => setPasteCollapsed((c) => !c)}
-              className="text-xs font-medium text-zinc-400 hover:text-zinc-200"
+              className="text-xs font-medium text-zinc-600 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
             >
               Paste chord sheet
             </button>
             {pasteCollapsed && (
-              <span className="text-xs text-zinc-600">
+              <span className="text-xs text-zinc-500 dark:text-zinc-600">
                 {text.split('\n').length} line{text.split('\n').length === 1 ? '' : 's'} — click to expand
               </span>
             )}
@@ -219,13 +219,13 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
               value={text}
               onChange={(e) => setText(e.target.value)}
               spellCheck={false}
-              className="h-48 w-full resize-y rounded-lg border border-white/10 bg-white/5 p-3 font-mono text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-purple-400"
+              className="h-48 w-full resize-y rounded-lg border border-black/10 bg-black/[0.03] p-3 font-mono text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-purple-400 dark:border-white/10 dark:bg-white/5 dark:text-zinc-100"
             />
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-zinc-500">Voicing:</span>
-          <div className="flex items-center gap-0.5 rounded-lg border border-white/10 bg-white/[0.03] p-1">
+          <div className="flex items-center gap-0.5 rounded-lg border border-black/10 bg-black/[0.02] p-1 dark:border-white/10 dark:bg-white/[0.03]">
             {(
               [
                 ['any', 'Any'],
@@ -238,7 +238,9 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
                 type="button"
                 onClick={() => setPreference(value)}
                 className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
-                  preference === value ? 'bg-purple-500 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                  preference === value
+                    ? 'bg-purple-500 text-white'
+                    : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
                 }`}
               >
                 {label}
@@ -246,7 +248,7 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
             ))}
           </div>
           <span className="ml-2 text-xs text-zinc-500">Save:</span>
-          <div className="flex items-center gap-0.5 rounded-lg border border-white/10 bg-white/[0.03] p-1">
+          <div className="flex items-center gap-0.5 rounded-lg border border-black/10 bg-black/[0.02] p-1 dark:border-white/10 dark:bg-white/[0.03]">
             {(
               [
                 [true, 'With lyrics'],
@@ -258,7 +260,9 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
                 type="button"
                 onClick={() => setIncludeLyrics(value)}
                 className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
-                  includeLyrics === value ? 'bg-purple-500 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                  includeLyrics === value
+                    ? 'bg-purple-500 text-white'
+                    : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
                 }`}
               >
                 {label}
@@ -275,13 +279,13 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
             }}
             onFocus={(e) => e.currentTarget.select()}
             placeholder="Song name"
-            className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-purple-400"
+            className="rounded-md border border-black/10 bg-black/[0.03] px-2 py-1 text-xs text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-purple-400 dark:border-white/10 dark:bg-white/5 dark:text-zinc-100"
           />
           <button
             type="button"
             disabled={totalChords === 0}
             onClick={handleSaveAsSong}
-            className="rounded-md bg-purple-500/20 px-3 py-1.5 text-xs font-medium text-purple-300 hover:bg-purple-500/30 disabled:opacity-40"
+            className="rounded-md bg-purple-500/20 px-3 py-1.5 text-xs font-medium text-purple-700 hover:bg-purple-500/30 disabled:opacity-40 dark:text-purple-300"
           >
             Save as Song
           </button>
@@ -289,7 +293,7 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
             type="button"
             disabled={totalChords === 0}
             onClick={handleSendToChords}
-            className="text-xs text-zinc-500 hover:text-zinc-300 disabled:opacity-40"
+            className="text-xs text-zinc-500 hover:text-zinc-700 disabled:opacity-40 dark:hover:text-zinc-300"
           >
             Send to Song board to edit first
           </button>
@@ -298,15 +302,15 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
             {stanzas.length === 1 ? '' : 's'}
           </span>
         </div>
-        {savedMessage && <p className="text-xs text-emerald-400">✓ {savedMessage}</p>}
+        {savedMessage && <p className="text-xs text-emerald-600 dark:text-emerald-400">✓ {savedMessage}</p>}
         {approximatedCount > 0 && (
-          <p className="text-xs text-amber-400/90">
+          <p className="text-xs text-amber-700/90 dark:text-amber-400/90">
             ⚠ {approximatedCount} chord{approximatedCount === 1 ? '' : 's'} used an approximated shape (sus/add/dim/
             extended chords aren't modeled individually).
           </p>
         )}
 
-        <div className="rounded-lg border border-white/10 bg-[#14151b] p-4 font-mono text-sm leading-6">
+        <div className="rounded-lg border border-black/10 bg-zinc-100 p-4 font-mono text-sm leading-6 dark:border-white/10 dark:bg-[#14151b]">
           {text.split('\n').map((line, i) => (
             <ChordSheetLine key={i} line={line} preference={preference} />
           ))}
@@ -326,13 +330,15 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
           <button
             type="button"
             onClick={() => setFullScreenChords((v) => !v)}
-            className="shrink-0 rounded-md border border-white/10 px-2 py-1 text-xs font-medium text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
+            className="shrink-0 rounded-md border border-black/10 px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-black/5 hover:text-zinc-800 dark:border-white/10 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-zinc-200"
           >
             {fullScreenChords ? '✕ Show sheet' : '⤢ Full screen'}
           </button>
         </div>
         {resolvedRows.length === 0 ? (
-          <p className="text-center text-xs text-zinc-600">Paste a chord sheet on the left to see chords here.</p>
+          <p className="text-center text-xs text-zinc-500 dark:text-zinc-600">
+            Paste a chord sheet on the left to see chords here.
+          </p>
         ) : (
           <div
             className={
@@ -344,8 +350,8 @@ export default function ChordSheet({ onSendToChords }: { onSendToChords: () => v
                 key={i}
                 className={
                   fullScreenChords
-                    ? 'flex flex-col gap-1.5 rounded-lg border border-white/10 bg-white/[0.02] p-3'
-                    : 'flex flex-col gap-1.5 border-b border-white/5 pb-4 last:border-0'
+                    ? 'flex flex-col gap-1.5 rounded-lg border border-black/10 bg-black/[0.02] p-3 dark:border-white/10 dark:bg-white/[0.02]'
+                    : 'flex flex-col gap-1.5 border-b border-black/5 pb-4 last:border-0 dark:border-white/5'
                 }
               >
                 <div className="flex flex-wrap gap-2">

@@ -1,3 +1,5 @@
+import { useThemeStore } from '../store/themeStore'
+
 export type Tab = 'chords' | 'scales' | 'notes' | 'songs' | 'library' | 'lyrics'
 
 const TABS: { id: Tab; label: string }[] = [
@@ -10,9 +12,12 @@ const TABS: { id: Tab; label: string }[] = [
 ]
 
 export default function NavBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
+  const theme = useThemeStore((s) => s.theme)
+  const toggleTheme = useThemeStore((s) => s.toggleTheme)
+
   return (
-    <header className="flex items-center gap-6 border-b border-white/10 px-4 py-3">
-      <span className="text-base font-bold tracking-tight text-zinc-100">Guitar Reference</span>
+    <header className="flex items-center gap-6 border-b border-black/10 px-4 py-3 dark:border-white/10">
+      <span className="text-base font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Guitar Reference</span>
       <nav className="flex gap-1">
         {TABS.map((tab) => (
           <button
@@ -21,14 +26,23 @@ export default function NavBar({ active, onChange }: { active: Tab; onChange: (t
             onClick={() => onChange(tab.id)}
             className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
               active === tab.id
-                ? 'bg-purple-500/20 text-purple-300'
-                : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
+                ? 'bg-purple-500/20 text-purple-700 dark:text-purple-300'
+                : 'text-zinc-600 hover:bg-black/5 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-zinc-200'
             }`}
           >
             {tab.label}
           </button>
         ))}
       </nav>
+      <button
+        type="button"
+        onClick={toggleTheme}
+        aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        className="ml-auto flex h-8 w-8 items-center justify-center rounded-md text-base text-zinc-600 hover:bg-black/5 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-zinc-200"
+      >
+        {theme === 'dark' ? '☀' : '🌙'}
+      </button>
     </header>
   )
 }

@@ -81,25 +81,25 @@ function ImportPanel({ onDone }: { onDone: () => void }) {
   if (pending) {
     const messages = warningMessages(pending.warnings)
     return (
-      <div className="mx-auto max-w-6xl rounded-lg border border-white/10 bg-white/[0.03] p-4">
+      <div className="mx-auto max-w-6xl rounded-lg border border-black/10 bg-black/[0.02] p-4 dark:border-white/10 dark:bg-white/[0.03]">
         <div className="flex flex-wrap items-center gap-2">
           <input
             value={pending.title}
             onChange={(e) => setPending({ ...pending, title: e.target.value })}
             placeholder="Title"
-            className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-purple-400"
+            className="rounded-md border border-black/10 bg-black/[0.03] px-2 py-1 text-xs text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-purple-400 dark:border-white/10 dark:bg-white/5 dark:text-zinc-100"
           />
           <input
             value={pending.artist}
             onChange={(e) => setPending({ ...pending, artist: e.target.value })}
             placeholder="Artist"
-            className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-purple-400"
+            className="rounded-md border border-black/10 bg-black/[0.03] px-2 py-1 text-xs text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-purple-400 dark:border-white/10 dark:bg-white/5 dark:text-zinc-100"
           />
           {pending.parsed.tracks.length > 1 && (
             <select
               value={pending.trackIndex}
               onChange={(e) => loadTrack(pending.parsed, Number(e.target.value))}
-              className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-zinc-100"
+              className="rounded-md border border-black/10 bg-black/[0.03] px-2 py-1 text-xs text-zinc-900 dark:border-white/10 dark:bg-white/5 dark:text-zinc-100"
             >
               {pending.parsed.tracks.map((t) => (
                 <option key={t.index} value={t.index}>
@@ -111,26 +111,27 @@ function ImportPanel({ onDone }: { onDone: () => void }) {
           <button
             type="button"
             onClick={handleConfirm}
-            className="rounded-md bg-purple-500/20 px-2 py-1 text-xs font-medium text-purple-300 hover:bg-purple-500/30"
+            className="rounded-md bg-purple-500/20 px-2 py-1 text-xs font-medium text-purple-700 hover:bg-purple-500/30 dark:text-purple-300"
           >
             Add to Library
           </button>
           <button
             type="button"
             onClick={() => setPending(null)}
-            className="text-xs text-zinc-500 hover:text-zinc-300"
+            className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
           >
             Cancel
           </button>
         </div>
         {messages.length > 0 && (
-          <ul className="mt-3 space-y-1 text-xs text-amber-400/90">
+          <ul className="mt-3 space-y-1 text-xs text-amber-700/90 dark:text-amber-400/90">
             {messages.map((m, i) => (
               <li key={i}>⚠ {m}</li>
             ))}
           </ul>
         )}
-        <div className="mt-3 rounded-md border border-white/5 p-2">
+        {/* Always dark — StaffView draws fixed light-colored notes assuming a dark backdrop. */}
+        <div className="mt-3 rounded-md border border-white/5 bg-[#14151b] p-2">
           <StaffView items={pending.lines[0]?.items ?? []} mode="staff" />
         </div>
       </div>
@@ -143,7 +144,7 @@ function ImportPanel({ onDone }: { onDone: () => void }) {
         type="button"
         disabled={busy}
         onClick={() => fileInputRef.current?.click()}
-        className="rounded-md bg-purple-500/20 px-3 py-1.5 text-xs font-medium text-purple-300 hover:bg-purple-500/30 disabled:opacity-50"
+        className="rounded-md bg-purple-500/20 px-3 py-1.5 text-xs font-medium text-purple-700 hover:bg-purple-500/30 disabled:opacity-50 dark:text-purple-300"
       >
         {busy ? 'Parsing…' : 'Import Guitar Pro file…'}
       </button>
@@ -180,7 +181,7 @@ function LibrarySongRow({ song, onEditInNotes }: { song: LibrarySong; onEditInNo
   }
 
   return (
-    <div className="rounded-lg border border-white/5 p-3">
+    <div className="rounded-lg border border-black/5 p-3 dark:border-white/5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-col items-start gap-0.5">
           {editing ? (
@@ -196,7 +197,7 @@ function LibrarySongRow({ song, onEditInNotes }: { song: LibrarySong; onEditInNo
               onKeyDown={(e) => {
                 if (e.key === 'Enter') e.currentTarget.blur()
               }}
-              className="rounded border border-white/10 bg-white/10 px-1.5 py-0.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-purple-400"
+              className="rounded border border-black/10 bg-black/5 px-1.5 py-0.5 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-purple-400 dark:border-white/10 dark:bg-white/10 dark:text-zinc-100"
             />
           ) : (
             <button
@@ -205,7 +206,7 @@ function LibrarySongRow({ song, onEditInNotes }: { song: LibrarySong; onEditInNo
                 setDraftTitle(song.title)
                 setEditing(true)
               }}
-              className="text-left text-sm font-semibold text-zinc-100 hover:text-purple-300"
+              className="text-left text-sm font-semibold text-zinc-900 hover:text-purple-600 dark:text-zinc-100 dark:hover:text-purple-300"
               title="Rename"
             >
               {song.title}
@@ -214,22 +215,31 @@ function LibrarySongRow({ song, onEditInNotes }: { song: LibrarySong; onEditInNo
           <button
             type="button"
             onClick={() => setOpen((o) => !o)}
-            className="text-left text-xs text-zinc-500 hover:text-zinc-300"
+            className="text-left text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
           >
             {song.artist} {open ? '▲' : '▼'}
           </button>
         </div>
         <div className="flex items-center gap-3 text-xs text-zinc-500">
-          <button type="button" onClick={handlePlay} className="hover:text-purple-300" title="Play">
+          <button
+            type="button"
+            onClick={handlePlay}
+            className="hover:text-purple-600 dark:hover:text-purple-300"
+            title="Play"
+          >
             ▶ Play
           </button>
-          <button type="button" onClick={() => onEditInNotes(song.lines)} className="hover:text-purple-300">
+          <button
+            type="button"
+            onClick={() => onEditInNotes(song.lines)}
+            className="hover:text-purple-600 dark:hover:text-purple-300"
+          >
             Edit in Notes tab
           </button>
           <button
             type="button"
             onClick={() => downloadLibrarySong(song.title, song.artist, song.lines)}
-            className="hover:text-zinc-300"
+            className="hover:text-zinc-700 dark:hover:text-zinc-300"
           >
             Export
           </button>
@@ -247,12 +257,14 @@ function LibrarySongRow({ song, onEditInNotes }: { song: LibrarySong; onEditInNo
 
       {open && (
         <div className="mt-3">
-          <div className="mb-2 flex items-center gap-0.5 rounded-md border border-white/10 bg-white/[0.03] p-1 w-fit">
+          <div className="mb-2 flex w-fit items-center gap-0.5 rounded-md border border-black/10 bg-black/[0.02] p-1 dark:border-white/10 dark:bg-white/[0.03]">
             <button
               type="button"
               onClick={() => setViewMode('staff')}
               className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
-                viewMode === 'staff' ? 'bg-purple-500 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                viewMode === 'staff'
+                  ? 'bg-purple-500 text-white'
+                  : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
               }`}
             >
               Staff
@@ -261,13 +273,16 @@ function LibrarySongRow({ song, onEditInNotes }: { song: LibrarySong; onEditInNo
               type="button"
               onClick={() => setViewMode('tab')}
               className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
-                viewMode === 'tab' ? 'bg-purple-500 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                viewMode === 'tab'
+                  ? 'bg-purple-500 text-white'
+                  : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
               }`}
             >
               Tab
             </button>
           </div>
-          <div className="flex flex-col gap-2 overflow-x-auto rounded-lg border border-white/5 p-2">
+          {/* Always dark — StaffView draws fixed light-colored notes assuming a dark backdrop. */}
+          <div className="flex flex-col gap-2 overflow-x-auto rounded-lg border border-white/5 bg-[#14151b] p-2">
             {song.lines.map((line) => (
               <StaffView key={line.id} items={line.items} activeInstanceId={playingInstanceId} mode={viewMode} />
             ))}
@@ -307,10 +322,14 @@ export default function MelodyLibrary({ onEditInNotes }: { onEditInNotes: (lines
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-zinc-100">Song Library</h1>
+        <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Song Library</h1>
         <div className="flex items-center gap-3 text-xs text-zinc-500">
           {songs.length > 0 && (
-            <button type="button" onClick={() => downloadAllLibrarySongs(songs)} className="hover:text-zinc-300">
+            <button
+              type="button"
+              onClick={() => downloadAllLibrarySongs(songs)}
+              className="hover:text-zinc-700 dark:hover:text-zinc-300"
+            >
               Export all
             </button>
           )}
@@ -318,7 +337,7 @@ export default function MelodyLibrary({ onEditInNotes }: { onEditInNotes: (lines
             type="button"
             onClick={() => fileInputRef.current?.click()}
             title="You can select multiple files at once"
-            className="hover:text-zinc-300"
+            className="hover:text-zinc-700 dark:hover:text-zinc-300"
           >
             Import…
           </button>

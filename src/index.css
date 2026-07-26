@@ -1,7 +1,17 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
+  color-scheme: light;
+  --page-bg: #f4f4f6;
+  --page-fg: #18181b;
+}
+
+:root.dark {
   color-scheme: dark;
+  --page-bg: #0f1115;
+  --page-fg: #e8e8ec;
 }
 
 html,
@@ -12,8 +22,8 @@ body,
 }
 
 body {
-  background: #0f1115;
-  color: #e8e8ec;
+  background: var(--page-bg);
+  color: var(--page-fg);
   font-family: system-ui, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
 }

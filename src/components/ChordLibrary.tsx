@@ -37,12 +37,12 @@ export default function ChordLibrary() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search chords (e.g. C, Am7)"
-          className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-purple-400"
+          className="rounded-md border border-black/10 bg-black/[0.03] px-3 py-1.5 text-sm text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-purple-400 dark:border-white/10 dark:bg-white/5 dark:text-zinc-100"
         />
         <select
           value={root}
           onChange={(e) => setRoot(e.target.value)}
-          className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-zinc-100"
+          className="rounded-md border border-black/10 bg-black/[0.03] px-2 py-1.5 text-sm text-zinc-900 dark:border-white/10 dark:bg-white/5 dark:text-zinc-100"
         >
           <option value="all">All roots</option>
           {ALL_ROOTS.map((r) => (
@@ -54,7 +54,7 @@ export default function ChordLibrary() {
         <select
           value={quality}
           onChange={(e) => setQuality(e.target.value as ChordQuality | 'all')}
-          className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-zinc-100"
+          className="rounded-md border border-black/10 bg-black/[0.03] px-2 py-1.5 text-sm text-zinc-900 dark:border-white/10 dark:bg-white/5 dark:text-zinc-100"
         >
           <option value="all">All qualities</option>
           {CHORD_QUALITIES.map((q) => (
@@ -63,7 +63,7 @@ export default function ChordLibrary() {
             </option>
           ))}
         </select>
-        <div className="flex items-center gap-0.5 rounded-lg border border-white/10 bg-white/[0.03] p-1">
+        <div className="flex items-center gap-0.5 rounded-lg border border-black/10 bg-black/[0.02] p-1 dark:border-white/10 dark:bg-white/[0.03]">
           {VOICING_FILTERS.map((f) => (
             <button
               key={f.value}
@@ -71,7 +71,9 @@ export default function ChordLibrary() {
               onClick={() => setVoicingFilter(f.value)}
               aria-pressed={voicingFilter === f.value}
               className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
-                voicingFilter === f.value ? 'bg-purple-500 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                voicingFilter === f.value
+                  ? 'bg-purple-500 text-white'
+                  : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
               }`}
             >
               {f.label}

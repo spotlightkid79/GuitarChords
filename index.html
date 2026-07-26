@@ -5,6 +5,19 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>guitar</title>
+    <script>
+      // Applied synchronously, before first paint, so a returning dark-mode user never sees a
+      // flash of the light-mode default while React and its stores spin up.
+      (function () {
+        try {
+          var raw = localStorage.getItem('guitar-theme')
+          var theme = raw ? JSON.parse(raw).state.theme : 'dark'
+          if (theme !== 'light') document.documentElement.classList.add('dark')
+        } catch {
+          document.documentElement.classList.add('dark')
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

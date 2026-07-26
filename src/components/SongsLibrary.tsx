@@ -217,7 +217,9 @@ function SongCard({
   return (
     <div
       className={`relative flex flex-col gap-2 rounded-lg border p-3 pl-24 ${expanded ? 'col-span-full' : ''} ${
-        isActive ? 'border-purple-400/50 bg-purple-500/5' : 'border-white/10 bg-white/5'
+        isActive
+          ? 'border-purple-400/50 bg-purple-500/5'
+          : 'border-black/10 bg-black/[0.03] dark:border-white/10 dark:bg-white/5'
       }`}
     >
       <div className="absolute left-2 top-2 flex items-center gap-1">
@@ -226,7 +228,7 @@ function SongCard({
           onClick={() => downloadSong(song.name, song.lines)}
           aria-label="Export"
           title="Export"
-          className="flex h-4 w-4 items-center justify-center rounded-sm border border-zinc-500 text-[10px] leading-none text-zinc-400 hover:border-zinc-300 hover:text-zinc-200"
+          className="flex h-4 w-4 items-center justify-center rounded-sm border border-zinc-400 text-[10px] leading-none text-zinc-600 hover:border-zinc-500 hover:text-zinc-800 dark:border-zinc-500 dark:text-zinc-400 dark:hover:border-zinc-300 dark:hover:text-zinc-200"
         >
           ↓
         </button>
@@ -236,7 +238,7 @@ function SongCard({
           onClick={handleDelete}
           aria-label="Delete"
           title="Delete"
-          className="flex h-4 w-4 items-center justify-center rounded-sm border border-zinc-500 text-[10px] leading-none text-zinc-400 hover:border-red-400 hover:text-red-400"
+          className="flex h-4 w-4 items-center justify-center rounded-sm border border-zinc-400 text-[10px] leading-none text-zinc-600 hover:border-red-400 hover:text-red-400 dark:border-zinc-500 dark:text-zinc-400"
         >
           ×
         </button>
@@ -255,7 +257,7 @@ function SongCard({
           onKeyDown={(e) => {
             if (e.key === 'Enter') e.currentTarget.blur()
           }}
-          className="rounded border border-white/10 bg-white/10 px-1.5 py-1 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-purple-400"
+          className="rounded border border-black/10 bg-black/5 px-1.5 py-1 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-purple-400 dark:border-white/10 dark:bg-white/10 dark:text-zinc-100"
         />
       ) : (
         <button
@@ -264,7 +266,7 @@ function SongCard({
             setDraftName(song.name)
             setEditing(true)
           }}
-          className="truncate text-left text-sm font-semibold text-zinc-100 hover:text-purple-300"
+          className="truncate text-left text-sm font-semibold text-zinc-900 hover:text-purple-600 dark:text-zinc-100 dark:hover:text-purple-300"
           title="Rename song"
         >
           {song.name}
@@ -286,8 +288,8 @@ function SongCard({
           }
           className={`flex h-5 items-center justify-center rounded-sm border px-1.5 text-[10px] leading-none transition-colors disabled:opacity-30 ${
             isPlaying
-              ? 'border-amber-400 text-amber-300 hover:border-amber-300'
-              : 'border-zinc-500 text-zinc-400 hover:border-zinc-300 hover:text-zinc-200'
+              ? 'border-amber-400 text-amber-600 hover:border-amber-500 dark:text-amber-300 dark:hover:border-amber-300'
+              : 'border-zinc-400 text-zinc-600 hover:border-zinc-500 hover:text-zinc-800 dark:border-zinc-500 dark:text-zinc-400 dark:hover:border-zinc-300 dark:hover:text-zinc-200'
           }`}
         >
           {isPlaying ? (isPaused ? '❙❙ Paused' : '■ Stop') : '▶ Play'}
@@ -297,10 +299,10 @@ function SongCard({
           onChange={(e) => setLoopSetting(e.target.value)}
           disabled={isPlaying}
           title="Repeat"
-          className="h-5 rounded-sm border border-zinc-500 bg-transparent px-1 text-[10px] leading-none text-zinc-400 disabled:opacity-50"
+          className="h-5 rounded-sm border border-zinc-400 bg-transparent px-1 text-[10px] leading-none text-zinc-600 disabled:opacity-50 dark:border-zinc-500 dark:text-zinc-400"
         >
           {LOOP_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value} className="bg-[#1a1b22] text-zinc-200">
+            <option key={o.value} value={o.value} className="bg-white text-zinc-800 dark:bg-[#1a1b22] dark:text-zinc-200">
               {o.label}
             </option>
           ))}
@@ -337,16 +339,18 @@ function SongCard({
       <div className="text-xs text-zinc-500">
         {song.lines.length} line{song.lines.length === 1 ? '' : 's'} · {chordCount} chord{chordCount === 1 ? '' : 's'}
       </div>
-      <div className="text-[11px] text-zinc-600">Updated {formatDate(song.updatedAt)}</div>
+      <div className="text-[11px] text-zinc-500 dark:text-zinc-600">Updated {formatDate(song.updatedAt)}</div>
 
       {isPlaying ? (
         <div
           className={`mt-1 flex flex-col gap-3 rounded-lg border p-3 ${
-            isPaused ? 'border-zinc-500/40 bg-white/[0.03]' : 'border-amber-400/30 bg-amber-400/5'
+            isPaused
+              ? 'border-zinc-400/40 bg-black/[0.02] dark:border-zinc-500/40 dark:bg-white/[0.03]'
+              : 'border-amber-400/30 bg-amber-400/5'
           }`}
         >
           {isPaused && (
-            <p className="text-center text-[11px] font-medium text-zinc-400">
+            <p className="text-center text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
               ❙❙ Paused — press Space to resume, ←/→ to skip chords
             </p>
           )}
@@ -385,7 +389,9 @@ function SongCard({
                     key={item.instanceId}
                     data-instance-id={item.instanceId}
                     className={`shrink-0 rounded px-2 py-1 text-center text-sm font-semibold transition-colors ${
-                      playing ? 'bg-amber-400 text-zinc-900' : 'bg-white/10 text-zinc-400'
+                      playing
+                        ? 'bg-amber-400 text-zinc-900'
+                        : 'bg-black/5 text-zinc-600 dark:bg-white/10 dark:text-zinc-400'
                     }`}
                   >
                     {chord.label}
@@ -395,7 +401,7 @@ function SongCard({
             </div>
           )}
           {hasAnyLyrics && (
-            <p className="min-h-[1.75rem] text-center text-base font-medium text-amber-200">
+            <p className="min-h-[1.75rem] text-center text-base font-medium text-amber-700 dark:text-amber-200">
               {currentLine?.lyrics || ' '}
             </p>
           )}
@@ -410,23 +416,25 @@ function SongCard({
                   <span
                     key={item.instanceId}
                     data-instance-id={item.instanceId}
-                    className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-zinc-300 transition-colors"
+                    className="rounded bg-black/5 px-1.5 py-0.5 text-[10px] text-zinc-700 transition-colors dark:bg-white/10 dark:text-zinc-300"
                   >
                     {chord.label}
                   </span>
                 ) : null
               })}
-              {preview.length > 8 && <span className="text-[10px] text-zinc-600">+{preview.length - 8} more</span>}
+              {preview.length > 8 && (
+                <span className="text-[10px] text-zinc-500 dark:text-zinc-600">+{preview.length - 8} more</span>
+              )}
             </div>
           )}
 
           {expanded && (
-            <div className="mt-1 flex flex-col gap-4 border-t border-white/10 pt-3">
+            <div className="mt-1 flex flex-col gap-4 border-t border-black/10 pt-3 dark:border-white/10">
               {song.lines.map((line) => (
                 <div key={line.id} className="flex flex-col gap-2">
-                  <div className="text-xs font-semibold text-zinc-400">{line.name}</div>
+                  <div className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">{line.name}</div>
                   {line.items.length === 0 ? (
-                    <p className="text-xs text-zinc-600">No chords in this line</p>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-600">No chords in this line</p>
                   ) : chordDisplay === 'shape' ? (
                     <div className="flex flex-wrap gap-3">
                       {line.items.map((item) => {
@@ -454,11 +462,11 @@ function SongCard({
                               type="button"
                               data-instance-id={item.instanceId}
                               onClick={() => playChord(chord)}
-                              className="rounded bg-white/10 px-2 py-1 text-sm font-semibold text-zinc-200 transition-colors hover:bg-white/20"
+                              className="rounded bg-black/5 px-2 py-1 text-sm font-semibold text-zinc-800 transition-colors hover:bg-black/10 dark:bg-white/10 dark:text-zinc-200 dark:hover:bg-white/20"
                             >
                               {chord.label}
                             </button>
-                            <div className="pointer-events-none absolute bottom-full left-full z-20 mb-1 ml-1 rounded-lg bg-[#14151b] opacity-0 shadow-xl ring-1 ring-white/10 transition-opacity delay-150 group-hover/chord:opacity-100">
+                            <div className="pointer-events-none absolute bottom-full left-full z-20 mb-1 ml-1 rounded-lg bg-white opacity-0 shadow-xl ring-1 ring-black/10 transition-opacity delay-150 group-hover/chord:opacity-100 dark:bg-[#14151b] dark:ring-white/10">
                               <CardBody chord={chord} />
                             </div>
                           </div>
@@ -503,7 +511,7 @@ export default function SongsLibrary() {
         type="button"
         onClick={() => fileInputRef.current?.click()}
         title="You can select multiple files at once"
-        className="text-xs text-zinc-500 hover:text-zinc-300"
+        className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
       >
         Import…
       </button>
@@ -545,10 +553,10 @@ export default function SongsLibrary() {
         <div className="flex items-center gap-3">
           <ExpandToggle expanded={allExpanded} onClick={toggleAll} />
           <span className="text-xs text-zinc-500">All · {songs.length} saved</span>
-          <h2 className="text-lg font-semibold text-zinc-100">Your songs</h2>
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Your songs</h2>
         </div>
         <div className="flex items-center gap-3 text-xs text-zinc-500">
-          <div className="flex items-center gap-0.5 rounded-lg border border-white/10 bg-white/[0.03] p-1">
+          <div className="flex items-center gap-0.5 rounded-lg border border-black/10 bg-black/[0.02] p-1 dark:border-white/10 dark:bg-white/[0.03]">
             {(
               [
                 ['shape', 'Shape'],
@@ -560,14 +568,16 @@ export default function SongsLibrary() {
                 type="button"
                 onClick={() => setChordDisplay(value)}
                 className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
-                  chordDisplay === value ? 'bg-purple-500 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                  chordDisplay === value
+                    ? 'bg-purple-500 text-white'
+                    : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
                 }`}
               >
                 {label}
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-0.5 rounded-lg border border-white/10 bg-white/[0.03] p-1">
+          <div className="flex items-center gap-0.5 rounded-lg border border-black/10 bg-black/[0.02] p-1 dark:border-white/10 dark:bg-white/[0.03]">
             {(
               [
                 ['horizontal', '↔ Horizontal'],
@@ -580,14 +590,20 @@ export default function SongsLibrary() {
                 onClick={() => setPlayLayout(value)}
                 title="Direction chords play in while a song is playing"
                 className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
-                  playLayout === value ? 'bg-purple-500 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                  playLayout === value
+                    ? 'bg-purple-500 text-white'
+                    : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
                 }`}
               >
                 {label}
               </button>
             ))}
           </div>
-          <button type="button" onClick={() => downloadAllSongs(songs)} className="hover:text-zinc-300">
+          <button
+            type="button"
+            onClick={() => downloadAllSongs(songs)}
+            className="hover:text-zinc-700 dark:hover:text-zinc-300"
+          >
             Export all
           </button>
           {importControls}

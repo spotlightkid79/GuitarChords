@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import NavBar, { type Tab } from './components/NavBar'
 import ChordLibrary from './components/ChordLibrary'
@@ -9,6 +9,7 @@ import ChordSheet from './components/ChordSheet'
 import ProgressionBoard from './components/ProgressionBoard'
 import { useProgressionStore, type BoardLine } from './store/progressionStore'
 import { useMelodyStore, type MelodyLine } from './store/melodyStore'
+import { useThemeStore } from './store/themeStore'
 import type { NoteName } from './lib/music-theory'
 
 // MelodyBoard pulls in vexflow (a large music-notation library) only needed on the Notes tab.
@@ -52,7 +53,12 @@ function resolveMelodyDropTarget(lines: MelodyLine[], overId: string) {
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('chords')
+  const theme = useThemeStore((s) => s.theme)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+  }, [theme])
 
   function handleChordDragEnd(event: DragEndEvent) {
     const { active, over } = event
