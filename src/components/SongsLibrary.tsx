@@ -55,8 +55,15 @@ function SongCard({
   const playbackTokenRef = useRef(0)
   const playbackHandleRef = useRef<ChordSequenceHandle | null>(null)
   const pausePositionRef = useRef(0)
+  const liveRestartTimeoutRef = useRef<number | null>(null)
   useScrollPlayingIntoView(playingInstanceId)
-  useEffect(() => () => playbackHandleRef.current?.stop(), [])
+  useEffect(
+    () => () => {
+      playbackHandleRef.current?.stop()
+      if (liveRestartTimeoutRef.current) window.clearTimeout(liveRestartTimeoutRef.current)
+    },
+    [],
+  )
   const isActive = activeSongId === song.id
   const chordCount = countChords(song)
   const preview = song.lines.flatMap((l) => l.items)
@@ -77,6 +84,7 @@ function SongCard({
     playbackHandleRef.current?.stop()
     playbackHandleRef.current = null
     playbackTokenRef.current++
+    if (liveRestartTimeoutRef.current) window.clearTimeout(liveRestartTimeoutRef.current)
     setIsPlaying(false)
     setIsPaused(false)
     setPlayingInstanceId(null)
@@ -84,13 +92,17 @@ function SongCard({
   }
 
   /** Starts (or resumes, via `resumeFromIndex`) playback. `resumeFromIndex` counts every chord
-   * across every repeat, not just within one pass — see `playChordSequence`'s `startIndex`. */
-  function startPlayback(resumeFromIndex: number) {
+   * across every repeat, not just within one pass — see `playChordSequence`'s `startIndex`.
+   * `overrides` lets a live speed/sustain change take effect immediately, without waiting for the
+   * state update (and thus a re-render) to land first. */
+  function startPlayback(resumeFromIndex: number, overrides?: { speed?: number; sustain?: number }) {
     if (withChords.length === 0) return
     const token = ++playbackTokenRef.current
     const loop = loopSetting === 'infinite'
     const repeatCount = Number(loopSetting) || 1
-    const chordDuration = DEFAULT_CHORD_DURATION / speed
+    const effectiveSpeed = overrides?.speed ?? speed
+    const effectiveSustain = overrides?.sustain ?? sustain
+    const chordDuration = DEFAULT_CHORD_DURATION / effectiveSpeed
     let flatIndex = resumeFromIndex
     const handle = playChordSequence(
       withChords.map((x) => x.chord),
@@ -101,8 +113,8 @@ function SongCard({
         flatIndex += 1
       },
       loop
-        ? { loop: true, chordDuration, sustain, startIndex: resumeFromIndex }
-        : { repeatCount, chordDuration, sustain, startIndex: resumeFromIndex },
+        ? { loop: true, chordDuration, sustain: effectiveSustain, startIndex: resumeFromIndex }
+        : { repeatCount, chordDuration, sustain: effectiveSustain, startIndex: resumeFromIndex },
     )
     playbackHandleRef.current = handle
     setIsPlaying(true)
@@ -131,11 +143,36 @@ function SongCard({
     startPlayback(0)
   }
 
+  /** Debounces a live speed/sustain tweak into a reschedule from the current chord, so dragging
+   * the slider doesn't retrigger the chord on every pixel of movement. No-ops while stopped or
+   * paused — paused playback just picks up the new value whenever it's resumed. */
+  function scheduleLiveRestart(overrides: { speed?: number; sustain?: number }) {
+    if (!isPlaying || isPaused) return
+    if (liveRestartTimeoutRef.current) window.clearTimeout(liveRestartTimeoutRef.current)
+    liveRestartTimeoutRef.current = window.setTimeout(() => {
+      liveRestartTimeoutRef.current = null
+      playbackHandleRef.current?.stop()
+      playbackHandleRef.current = null
+      startPlayback(pausePositionRef.current, overrides)
+    }, 150)
+  }
+
+  function handleSpeedChange(value: number) {
+    setSpeed(value)
+    scheduleLiveRestart({ speed: value })
+  }
+
+  function handleSustainChange(value: number) {
+    setSustain(value)
+    scheduleLiveRestart({ sustain: value })
+  }
+
   /** Silences playback but remembers where it was, so Space can pick back up from there. */
   function handlePause() {
     playbackHandleRef.current?.stop()
     playbackHandleRef.current = null
     playbackTokenRef.current++
+    if (liveRestartTimeoutRef.current) window.clearTimeout(liveRestartTimeoutRef.current)
     setIsPaused(true)
   }
 
@@ -173,7 +210,9 @@ function SongCard({
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isPlaying, isPaused])
+    // Re-subscribes whenever anything the handler closes over changes, so it never fires with a
+    // stale speed/sustain/loopSetting (e.g. after adjusting a slider mid-playback).
+  }, [isPlaying, isPaused, speed, sustain, loopSetting])
 
   return (
     <div
@@ -266,29 +305,30 @@ function SongCard({
             </option>
           ))}
         </select>
-        <div className="flex items-center gap-1" title="Playback speed">
+        <div className="flex items-center gap-1" title="Playback speed — adjustable while playing">
           <input
             type="range"
             min="0.1"
             max="8"
             step="0.05"
             value={speed}
-            onChange={(e) => setSpeed(Number(e.target.value))}
-            disabled={isPlaying}
-            className="h-1 w-20 accent-purple-400 disabled:opacity-50"
+            onChange={(e) => handleSpeedChange(Number(e.target.value))}
+            className="h-1 w-20 accent-purple-400"
           />
           <span className="w-9 text-[10px] text-zinc-500">{speed.toFixed(2)}x</span>
         </div>
-        <div className="flex items-center gap-1" title="Sustain — how long each chord rings, independent of tempo">
+        <div
+          className="flex items-center gap-1"
+          title="Sustain — how long each chord rings, independent of tempo. Adjustable while playing"
+        >
           <input
             type="range"
             min="0.1"
             max="8"
             step="0.05"
             value={sustain}
-            onChange={(e) => setSustain(Number(e.target.value))}
-            disabled={isPlaying}
-            className="h-1 w-20 accent-amber-400 disabled:opacity-50"
+            onChange={(e) => handleSustainChange(Number(e.target.value))}
+            className="h-1 w-20 accent-amber-400"
           />
           <span className="w-9 text-[10px] text-zinc-500">{sustain.toFixed(2)}x</span>
         </div>
