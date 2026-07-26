@@ -353,6 +353,11 @@ function ScaleNeck({ rootNote, scaleType, fretCount = 12 }: Omit<ScaleFretboardP
       isVisible={(note) => scaleNotes.has(note)}
       isEmphasis={(note) => note === rootNote}
       ariaLabel={`${rootNote} ${scaleType.name}`}
+      minWidth={1020}
+      widthPerFret={82}
+      dotRadius={13.5}
+      fontSize={12}
+      height={225}
     />
   )
 }
