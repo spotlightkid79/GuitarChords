@@ -57,6 +57,9 @@ function SongCard({
   const isActive = activeSongId === song.id
   const chordCount = countChords(song)
   const preview = song.lines.flatMap((l) => l.items)
+  const withChords = preview
+    .map((item) => ({ item, chord: chordById.get(item.chordId) }))
+    .filter((x): x is { item: BoardItem; chord: ChordShape } => !!x.chord)
   const currentLine = playingInstanceId
     ? song.lines.find((l) => l.items.some((i) => i.instanceId === playingInstanceId))
     : null
@@ -80,9 +83,6 @@ function SongCard({
   /** Starts (or resumes, via `resumeFromIndex`) playback. `resumeFromIndex` counts every chord
    * across every repeat, not just within one pass — see `playChordSequence`'s `startIndex`. */
   function startPlayback(resumeFromIndex: number) {
-    const withChords = preview
-      .map((item) => ({ item, chord: chordById.get(item.chordId) }))
-      .filter((x): x is { item: BoardItem; chord: ChordShape } => !!x.chord)
     if (withChords.length === 0) return
     const token = ++playbackTokenRef.current
     const loop = loopSetting === 'infinite'
@@ -136,14 +136,33 @@ function SongCard({
     setIsPaused(true)
   }
 
+  /** Jumps the current (or paused) chord forward/back by `delta`. While paused this just moves
+   * the frozen position silently; while playing it restarts the sequence from the new chord. */
+  function skipBy(delta: number) {
+    if (withChords.length === 0) return
+    const newIndex = Math.max(0, pausePositionRef.current + delta)
+    if (isPaused) {
+      pausePositionRef.current = newIndex
+      setPlayingInstanceId(withChords[newIndex % withChords.length].item.instanceId)
+      return
+    }
+    playbackHandleRef.current?.stop()
+    playbackHandleRef.current = null
+    startPlayback(newIndex)
+  }
+
   useEffect(() => {
     if (!isPlaying) return
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.code !== 'Space') return
+      if (e.code !== 'Space' && e.code !== 'ArrowRight' && e.code !== 'ArrowLeft') return
       const target = e.target as HTMLElement | null
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
       e.preventDefault()
-      if (isPaused) {
+      if (e.code === 'ArrowRight') {
+        skipBy(1)
+      } else if (e.code === 'ArrowLeft') {
+        skipBy(-1)
+      } else if (isPaused) {
         startPlayback(pausePositionRef.current)
       } else {
         handlePause()
@@ -216,7 +235,13 @@ function SongCard({
           disabled={chordCount === 0}
           onClick={handlePlay}
           aria-label={isPlaying ? 'Stop' : 'Play song'}
-          title={isPlaying ? (isPaused ? 'Stop (Space to resume)' : 'Stop (Space to pause)') : 'Play song'}
+          title={
+            isPlaying
+              ? isPaused
+                ? 'Stop (Space to resume, ←/→ to skip)'
+                : 'Stop (Space to pause, ←/→ to skip)'
+              : 'Play song'
+          }
           className={`flex h-5 items-center justify-center rounded-sm border px-1.5 text-[10px] leading-none transition-colors disabled:opacity-30 ${
             isPlaying
               ? 'border-amber-400 text-amber-300 hover:border-amber-300'
@@ -278,7 +303,9 @@ function SongCard({
           }`}
         >
           {isPaused && (
-            <p className="text-center text-[11px] font-medium text-zinc-400">❙❙ Paused — press Space to resume</p>
+            <p className="text-center text-[11px] font-medium text-zinc-400">
+              ❙❙ Paused — press Space to resume, ←/→ to skip chords
+            </p>
           )}
           {chordDisplay === 'shape' ? (
             <div className="flex gap-2 overflow-x-auto pb-1">
