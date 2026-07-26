@@ -286,7 +286,7 @@ function SongCard({
                         >
                           {chord.label}
                         </button>
-                        <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 opacity-0 transition-opacity delay-150 group-hover/chord:opacity-100">
+                        <div className="pointer-events-none absolute bottom-full left-full z-20 mb-1 ml-1 rounded-lg bg-[#14151b] opacity-0 shadow-xl ring-1 ring-white/10 transition-opacity delay-150 group-hover/chord:opacity-100">
                           <CardBody chord={chord} />
                         </div>
                       </div>
