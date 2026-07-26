@@ -198,27 +198,27 @@ function SongCard({
           <input
             type="range"
             min="0.1"
-            max="5"
-            step="0.1"
+            max="8"
+            step="0.05"
             value={speed}
             onChange={(e) => setSpeed(Number(e.target.value))}
             disabled={isPlaying}
-            className="h-1 w-14 accent-purple-400 disabled:opacity-50"
+            className="h-1 w-20 accent-purple-400 disabled:opacity-50"
           />
-          <span className="w-8 text-[10px] text-zinc-500">{speed.toFixed(2)}x</span>
+          <span className="w-9 text-[10px] text-zinc-500">{speed.toFixed(2)}x</span>
         </div>
         <div className="flex items-center gap-1" title="Sustain — how long each chord rings, independent of tempo">
           <input
             type="range"
             min="0.1"
-            max="5"
-            step="0.1"
+            max="8"
+            step="0.05"
             value={sustain}
             onChange={(e) => setSustain(Number(e.target.value))}
             disabled={isPlaying}
-            className="h-1 w-14 accent-amber-400 disabled:opacity-50"
+            className="h-1 w-20 accent-amber-400 disabled:opacity-50"
           />
-          <span className="w-8 text-[10px] text-zinc-500">{sustain.toFixed(2)}x</span>
+          <span className="w-9 text-[10px] text-zinc-500">{sustain.toFixed(2)}x</span>
         </div>
       </div>
 
